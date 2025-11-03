@@ -1,8 +1,8 @@
 // src/pages/Signup.js
-
 import React, { useState } from 'react';
 import { Container, Form, Button, Row, Col, Card, Alert } from 'react-bootstrap';
-import axios from 'axios'; // <-- 1. IMPORT AXIOS
+import axios from 'axios';
+import { Link } from 'react-router-dom'; // Import Link for navigation
 
 function Signup() {
     // State to hold form data
@@ -14,7 +14,6 @@ function Signup() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // --- 2. UPDATE THE SUBMIT FUNCTION ---
     const handleSubmit = async (e) => {
         e.preventDefault(); // Prevent default form submission
         
@@ -24,11 +23,9 @@ function Signup() {
             return;
         }
 
-        // Clear previous messages
         setError('');
         setSuccess('');
 
-        // Prepare the data to send to Django
         const registrationData = {
             email: email,
             password: password,
@@ -37,9 +34,16 @@ function Signup() {
 
         try {
             // Send the data to our API endpoint!
-            const response = await axios.post('http://127.0.0.1:8000/api/register/', registrationData);
+            const response = await axios.post(
+                'http://127.0.0.1:8000/api/register/', // 1. The URL
+                registrationData, // 2. The data
+                { // 3. The new config object
+                    headers: {
+                        'Authorization': null 
+                    }
+                }
+            );
             
-            // Handle success
             console.log('Registration successful:', response.data);
             setSuccess('Registration successful! You can now log in.');
             
@@ -49,12 +53,9 @@ function Signup() {
             setUserType('PATIENT');
 
         } catch (apiError) {
-            // Handle failure
-            console.error('Registration error:', apiError.response.data);
+            console.error('Registration error:', apiError.response);
             
-            // Try to show a specific error from the backend
             if (apiError.response && apiError.response.data) {
-                // 'email' or 'password' errors from the serializer
                 const errors = apiError.response.data;
                 if (errors.email) {
                     setError(`Email Error: ${errors.email[0]}`);
@@ -73,13 +74,13 @@ function Signup() {
         <Container className="mt-5">
             <Row className="justify-content-md-center">
                 <Col md={6}>
-                    <Card>
+                    {/* Uses the new CSS class from index.css */}
+                    <Card className="theme-card">
                         <Card.Body>
-                            <Card.Title as="h2" className="text-center mb-4">
-                                Sign Up for Mediprior
+                            <Card.Title as="h2" className="text-center mb-4 theme-title">
+                                Create Your Account
                             </Card.Title>
                             
-                            {/* Show error or success messages */}
                             {error && <Alert variant="danger">{error}</Alert>}
                             {success && <Alert variant="success">{success}</Alert>}
 
@@ -91,6 +92,7 @@ function Signup() {
                                         placeholder="Enter email" 
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        className="theme-input" // <-- Uses new theme class
                                         required
                                     />
                                 </Form.Group>
@@ -102,6 +104,7 @@ function Signup() {
                                         placeholder="Password" 
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        className="theme-input" // <-- Uses new theme class
                                         required
                                     />
                                 </Form.Group>
@@ -111,6 +114,7 @@ function Signup() {
                                     <Form.Select 
                                         value={userType}
                                         onChange={(e) => setUserType(e.target.value)}
+                                        className="theme-input" // <-- Uses new theme class
                                     >
                                         <option value="PATIENT">Patient</option>
                                         <option value="DOCTOR">Doctor</option>
@@ -118,9 +122,15 @@ function Signup() {
                                 </Form.Group>
 
                                 <div className="d-grid mt-4">
-                                    <Button variant="primary" type="submit" size="lg">
+                                    <Button type="submit" size="lg" className="theme-button">
                                         Sign Up
                                     </Button>
+                                </div>
+
+                                {/* Link to the login page */}
+                                <div className="text-center mt-3">
+                                    <span className="text-muted">Already have an account? </span>
+                                    <Link to="/login" className="theme-link">Login</Link>
                                 </div>
                             </Form>
                         </Card.Body>

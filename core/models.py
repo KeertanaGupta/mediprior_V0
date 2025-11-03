@@ -74,19 +74,73 @@ class User(AbstractBaseUser):
 class PatientProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='patient_profile')
     name = models.CharField(max_length=255)
-    age = models.IntegerField(null=True, blank=True)
+    
+    # --- NEW & UPDATED FIELDS ---
+    dob = models.DateField(null=True, blank=True) # Replaces 'age'
+    gender = models.CharField(max_length=10, blank=True)
+    blood_group = models.CharField(max_length=5, blank=True)
+    phone_number = models.CharField(max_length=15, blank=True)
+    
     height = models.FloatField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
     medical_history = models.TextField(blank=True)
+    # --- END OF CHANGES ---
 
     def __str__(self):
         return self.name
+
+
+# core/models.py
+# ... (User, UserManager, and PatientProfile classes are above) ...
 
 class DoctorProfile(models.Model):
+    # Verification Status Choices
+    class VerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Review'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    # Consultation Type Choices
+    class ConsultationType(models.TextChoices):
+        ONLINE = 'ONLINE', 'Online'
+        IN_PERSON = 'IN_PERSON', 'In-Person'
+        BOTH = 'BOTH', 'Both'
+
+    # --- Basic Details ---
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='doctor_profile')
     name = models.CharField(max_length=255)
-    specialization = models.CharField(max_length=255)
-    years_of_experience = models.IntegerField(null=True, blank=True)
+    phone_number = models.CharField(max_length=15, blank=True)
+    dob = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, blank=True)
+    
+    # --- Professional Details (NOW WITH blank=True/null=True) ---
+    medical_registration_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    medical_council = models.CharField(max_length=255, blank=True)
+    qualification = models.CharField(max_length=255, blank=True)
+    specialization = models.CharField(max_length=255, blank=True)
+    years_of_experience = models.PositiveIntegerField(null=True, blank=True)
+    clinic_name = models.CharField(max_length=255, blank=True)
+    consultation_type = models.CharField(max_length=20, choices=ConsultationType.choices, default=ConsultationType.BOTH)
+
+    # --- Verification Documents ---
+    def get_degree_upload_path(instance, filename):
+        return f'doctors/{instance.user.email}/degree_{filename}'
+    def get_reg_upload_path(instance, filename):
+        return f'doctors/{instance.user.email}/registration_{filename}'
+    def get_photo_upload_path(instance, filename):
+        return f'doctors/{instance.user.email}/photo_{filename}'
+
+    medical_degree_certificate = models.FileField(upload_to=get_degree_upload_path, null=True, blank=True)
+    medical_registration_certificate = models.FileField(upload_to=get_reg_upload_path, null=True, blank=True)
+    profile_photo = models.ImageField(upload_to=get_photo_upload_path, null=True, blank=True)
+    bio = models.TextField(max_length=250, blank=True)
+
+    # --- THE VERIFICATION FIELD ---
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.PENDING
+    )
 
     def __str__(self):
-        return self.name
+        return f"Dr. {self.name} ({self.verification_status})"

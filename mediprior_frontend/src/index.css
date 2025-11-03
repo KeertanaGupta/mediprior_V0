@@ -1,3 +1,95 @@
+/* src/index.css */
+
+/* 1. Define your color palette as CSS variables */
+:root {
+  --peach-primary: #fec89a; /* Strongest peach for buttons */
+  --peach-secondary: #fec5bb; /* Lighter peach for links/accents */
+  --peach-light: #ffe5d9;     /* Light peach for cards */
+  --peach-bg-light: #f8edeb;   /* Lightest peach for gradient */
+  
+  --grey-light: #e8e8e4;      /* Light grey */
+  --grey-bg-soft: #d8e2dc;   /* Soft grey-green for gradient */
+
+  --text-dark: #4E4E4E;       /* A professional dark text color (not in palette) */
+  --text-light: #6c757d;    /* A lighter grey for muted text */
+  --white: #FFFFFF;
+}
+
+/* 2. Apply the gradient background to the whole app */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* This is your new gradient background! */
+  background: linear-gradient(135deg, var(--peach-bg-light) 0%, var(--grey-bg-soft) 100%);
+  min-height: 100vh;
+}
+
+/* 3. Create reusable component styles */
+
+/* Style for the main app container */
+.app-container {
+  background: linear-gradient(135deg, var(--peach-bg-light) 0%, var(--grey-bg-soft) 100%);
+  min-height: calc(100vh - 56px); /* 56px is the default navbar height */
+  padding-top: 20px;
+}
+
+/* Style for all your forms (Login, Signup, Profile) */
+.theme-card {
+  background-color: var(--white);
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+  padding: 1.5rem;
+}
+
+/* Style for all form inputs */
+.theme-input {
+  background-color: var(--peach-bg-light);
+  border: 1px solid var(--grey-light);
+  color: var(--text-dark);
+  border-radius: 8px;
+}
+.theme-input:focus {
+  background-color: var(--white);
+  border-color: var(--peach-secondary);
+  box-shadow: 0 0 0 0.25rem rgba(254, 197, 187, 0.5);
+  color: var(--text-dark);
+}
+
+/* Style for all primary buttons */
+.theme-button {
+  background-color: var(--peach-primary);
+  border: none;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+.theme-button:hover {
+  background-color: var(--peach-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(254, 200, 154, 0.6);
+}
+
+/* Style for all page titles */
+.theme-title {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+/* Style for all links */
+.theme-link {
+  color: var(--peach-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.theme-link:hover {
+  color: var(--peach-secondary);
+  text-decoration: underline;
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

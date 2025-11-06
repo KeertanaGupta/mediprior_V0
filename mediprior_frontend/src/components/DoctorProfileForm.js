@@ -1,12 +1,12 @@
 // src/components/DoctorProfileForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import PhoneInput from 'react-phone-number-input';
 
-// We pass 'onComplete' as a prop. The Dashboard will use this
-// to close the modal and refresh the profile.
-function DoctorProfileForm({ onComplete }) {
+// 1. ACCEPT 'profile' AS A PROP
+function DoctorProfileForm({ onComplete, profile }) {
     // State for all 13 fields
     const [name, setName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -30,16 +30,34 @@ function DoctorProfileForm({ onComplete }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const fileBaseUrl = 'http://127.0.0.1:8000'; // For "View" links
+
+    // 2. NEW: useEffect TO FILL THE FORM for editing
+    useEffect(() => {
+        if (profile) {
+            setName(profile.name || '');
+            setPhoneNumber(profile.phone_number || '');
+            setDob(profile.dob || '');
+            setGender(profile.gender || '');
+            setMedicalRegistrationNumber(profile.medical_registration_number || '');
+            setMedicalCouncil(profile.medical_council || '');
+            setQualification(profile.qualification || '');
+            setSpecialization(profile.specialization || '');
+            setYearsOfExperience(profile.years_of_experience || '');
+            setClinicName(profile.clinic_name || '');
+            setConsultationType(profile.consultation_type || 'BOTH');
+            setBio(profile.bio || '');
+        }
+    }, [profile]); // This runs when the profile prop is passed in
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        // 1. We must use FormData for file uploads.
         const formData = new FormData();
         
-        // 2. Append all the text fields
+        // Append all the text fields
         formData.append('name', name);
         formData.append('phone_number', phoneNumber);
         formData.append('dob', dob);
@@ -53,7 +71,7 @@ function DoctorProfileForm({ onComplete }) {
         formData.append('consultation_type', consultationType);
         formData.append('bio', bio);
 
-        // 3. Append files (only if they exist)
+        // Append files (only if they are newly selected)
         if (medicalDegreeCert) {
             formData.append('medical_degree_certificate', medicalDegreeCert);
         }
@@ -65,13 +83,12 @@ function DoctorProfileForm({ onComplete }) {
         }
 
         try {
-            // 4. Send the FormData
+            // Send the FormData
             await axios.post('http://127.0.0.1:8000/api/profile/', formData);
             
             setLoading(false);
-            // Tell the parent (Dashboard) that we are done
             if(onComplete) {
-                onComplete();
+                onComplete(); // Tell the dashboard to close the modal and refresh
             } else {
                 navigate(0); // Fallback: reload the page
             }
@@ -84,9 +101,11 @@ function DoctorProfileForm({ onComplete }) {
     };
 
     return (
-        // This form will be placed inside a Modal, so we don't need a Card
         <Form onSubmit={handleSubmit} className="p-3">
-            <h2 className="text-center mb-4 theme-title">Complete Your Doctor Profile</h2>
+            {/* 3. DYNAMIC TITLE */}
+            <h2 className="text-center mb-4 theme-title">
+                {profile ? 'Edit Your Doctor Profile' : 'Complete Your Doctor Profile'}
+            </h2>
             <p className="text-center text-muted mb-4">
                 Your profile will be reviewed for verification.
             </p>
@@ -100,9 +119,16 @@ function DoctorProfileForm({ onComplete }) {
                     </Form.Group>
                 </Col>
                 <Col md={6}>
+                    {/* 4. NEW PHONE INPUT */}
                     <Form.Group className="mb-3" controlId="docPhone">
                         <Form.Label>Phone Number</Form.Label>
-                        <Form.Control type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="theme-input" />
+                        <PhoneInput
+                            international
+                            defaultCountry="IN"
+                            value={phoneNumber}
+                            onChange={setPhoneNumber}
+                            className="theme-input"
+                        />
                     </Form.Group>
                 </Col>
             </Row>
@@ -191,17 +217,30 @@ function DoctorProfileForm({ onComplete }) {
 
             <hr className="my-4" />
 
+            {/* --- 5. UPDATED FILE INPUTS --- */}
             <Row>
                 <Col md={6}>
                     <Form.Group className="mb-3" controlId="docDegree">
-                        <Form.Label>Upload Medical Degree Certificate</Form.Label>
-                        <Form.Control type="file" onChange={(e) => setMedicalDegreeCert(e.target.files[0])} className="theme-input" required />
+                        <Form.Label>Medical Degree Certificate</Form.Label>
+                        {/* Only required if it's a new profile */}
+                        <Form.Control type="file" onChange={(e) => setMedicalDegreeCert(e.target.files[0])} className="theme-input" required={!profile} />
+                        {/* Show link to existing file if it exists */}
+                        {profile && profile.medical_degree_certificate && (
+                            <Form.Text className="text-muted">
+                                Current file: <a href={`${fileBaseUrl}${profile.medical_degree_certificate}`} target="_blank" rel="noopener noreferrer">View</a>
+                            </Form.Text>
+                        )}
                     </Form.Group>
                 </Col>
                 <Col md={6}>
                     <Form.Group className="mb-3" controlId="docReg">
-                        <Form.Label>Upload Medical Registration Certificate</Form.Label>
-                        <Form.Control type="file" onChange={(e) => setMedicalRegCert(e.target.files[0])} className="theme-input" required />
+                        <Form.Label>Medical Registration Certificate</Form.Label>
+                        <Form.Control type="file" onChange={(e) => setMedicalRegCert(e.target.files[0])} className="theme-input" required={!profile} />
+                        {profile && profile.medical_registration_certificate && (
+                            <Form.Text className="text-muted">
+                                Current file: <a href={`${fileBaseUrl}${profile.medical_registration_certificate}`} target="_blank" rel="noopener noreferrer">View</a>
+                            </Form.Text>
+                        )}
                     </Form.Group>
                 </Col>
             </Row>
@@ -209,11 +248,17 @@ function DoctorProfileForm({ onComplete }) {
             <Form.Group className="mb-3" controlId="docPhoto">
                 <Form.Label>Profile Photo (Optional)</Form.Label>
                 <Form.Control type="file" onChange={(e) => setProfilePhoto(e.target.files[0])} className="theme-input" />
+                {profile && profile.profile_photo && (
+                    <Form.Text className="text-muted">
+                        Current photo: <a href={`${fileBaseUrl}${profile.profile_photo}`} target="_blank" rel="noopener noreferrer">View</a>
+                    </Form.Text>
+                )}
             </Form.Group>
             
             <div className="d-grid mt-4">
+                {/* 6. DYNAMIC BUTTON TEXT */}
                 <Button type="submit" size="lg" className="theme-button" disabled={loading}>
-                    {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : 'Submit for Verification'}
+                    {loading ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : (profile ? 'Update Profile' : 'Submit for Verification')}
                 </Button>
             </div>
         </Form>

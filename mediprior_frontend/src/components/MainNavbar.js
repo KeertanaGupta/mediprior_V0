@@ -10,7 +10,7 @@ function MainNavbar() {
 
     const handleLogout = () => {
         logoutUser();
-        navigate('/login'); // Navigate to login after logout
+        // We don't need to navigate, logoutUser already does.
     };
 
     return (
@@ -23,15 +23,21 @@ function MainNavbar() {
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="ms-auto">
                         {user ? (
-                            // If user IS logged in
+                            // --- If user IS logged in ---
                             <>
                                 <Nav.Link as={Link} to="/dashboard" className="theme-link">Dashboard</Nav.Link>
+                                
+                                {/* --- NEW: Show links based on user type --- */}
+                                {user.user_type === 'PATIENT' && (
+                                    <Nav.Link as={Link} to="/find-doctors" className="theme-link">Find Doctors</Nav.Link>
+                                )}
+                                
                                 <Nav.Link onClick={handleLogout} className="theme-link" style={{ color: 'var(--peach-primary)' }}>
                                     Logout
                                 </Nav.Link>
                             </>
                         ) : (
-                            // If user is NOT logged in
+                            // --- If user is NOT logged in ---
                             <>
                                 <Nav.Link as={Link} to="/login" className="theme-link">Login</Nav.Link>
                                 <Nav.Link as={Link} to="/signup" className="theme-link">Sign Up</Nav.Link>

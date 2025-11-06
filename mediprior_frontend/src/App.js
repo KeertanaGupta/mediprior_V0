@@ -10,6 +10,7 @@ import MainNavbar from './components/MainNavbar'; // <-- IMPORT NEW NAVBAR
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import FindDoctors from './pages/FindDoctors';
 
 // Import your CSS
 import './index.css'; 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} /> 
+            <Route path="/find-doctors" element={<FindDoctors />} />
           </Routes>
         </Container>
       </div>

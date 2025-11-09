@@ -3,61 +3,41 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// 1. Get tokens from storage immediately when the app loads.
 const getTokensFromStorage = () => {
     const tokens = localStorage.getItem('access_token');
     try {
-        if (tokens) {
-            return JSON.parse(tokens);
-        }
+        if (tokens) { return JSON.parse(tokens); }
     } catch (e) {
-        console.error("Could not parse tokens from storage", e);
-        localStorage.removeItem('access_token'); // Clear corrupted token
+        localStorage.removeItem('access_token');
     }
     return null;
 };
 
-// 2. Set the axios default header immediately (top-level).
 const initialAuthTokens = getTokensFromStorage();
-if (initialAuthTokens) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${initialAuthTokens.access}`;
-}
-// --- END OF FIX ---
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    // 3. Use the tokens we already fetched for the initial state.
     const [authTokens, setAuthTokens] = useState(initialAuthTokens);
-    
-    const [user, setUser] = useState(() => 
-        initialAuthTokens
-        ? jwtDecode(initialAuthTokens.access)
-        : null
-    );
-
+    const [user, setUser] = useState(() => initialAuthTokens ? jwtDecode(initialAuthTokens.access) : null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const navigate = (path) => {
-        window.location.href = path;
-    };
+    const navigate = (path) => { window.location.href = path; };
 
     // This function can be called by any component to refresh the profile
     const fetchProfile = async () => {
-        const tokens = getTokensFromStorage(); // Get fresh tokens
+        const tokens = getTokensFromStorage();
         if (!tokens) {
             setLoading(false);
             return 'error';
         }
-        
-        // This check is a safeguard
-        if(!axios.defaults.headers.common['Authorization']){
-             axios.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
-        }
 
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/profile/');
+            // Manually add the token
+            const response = await axios.get('http://127.0.0.1:8000/api/profile/', {
+                headers: { Authorization: `Bearer ${tokens.access}` }
+            });
             setProfile(response.data);
             return 'success';
         } catch (error) {
@@ -65,7 +45,6 @@ export const AuthProvider = ({ children }) => {
                 setProfile(null); 
                 return 'not_found';
             } else {
-                console.error('Fetch profile error', error);
                 return 'error';
             }
         }
@@ -84,12 +63,9 @@ export const AuthProvider = ({ children }) => {
             setAuthTokens(data);
             setUser(decodedUser);
             localStorage.setItem('access_token', JSON.stringify(data));
-            // Set the default header for this new session
-            axios.defaults.headers.common['Authorization'] = `Bearer ${data.access}`;
             
-            navigate('/dashboard'); // Just navigate. Dashboard will handle the rest.
+            navigate('/dashboard'); // Just navigate.
             return 'success';
-
         } catch (error) {
             console.error('Login error', error);
             return 'error';
@@ -102,8 +78,6 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setProfile(null);
         localStorage.removeItem('access_token');
-        // Un-set the default header
-        axios.defaults.headers.common['Authorization'] = null;
         navigate('/login');
     };
 
@@ -111,32 +85,31 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const loadData = async () => {
             if (authTokens && !profile) {
-                await fetchProfile(); // Load profile if we're logged in
+                await fetchProfile();
             }
             setLoading(false);
         }
         loadData();
-    }, []); // Run only ONCE on initial app load
-
+    }, []); // Run only ONCE
 
     const contextData = {
         user: user,
         profile: profile,
-        authTokens: authTokens, // <-- THIS IS THE VALUE THAT WAS 'undefined'
+        authTokens: authTokens, // <-- EXPOSE THE TOKENS
         fetchProfile: fetchProfile, 
         loginUser: loginUser,
         logoutUser: logoutUser,
     };
 
     return (
-        // --- THIS IS THE TYPO THAT WAS LIKELY CAUSING THE CRASH ---
+        // --- THIS WAS THE TYPO ---
         <AuthContext.Provider value={contextData}>
             {!loading && children}
         </AuthContext.Provider> 
+        // It used to say </AuthData>
     );
 };
 
-// This is a custom hook to easily use the context
 export const useAuth = () => {
     return useContext(AuthContext);
 };

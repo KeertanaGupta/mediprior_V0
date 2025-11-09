@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Form, Row, Col, Alert, Spinner, ListGroup } from 'react-bootstrap';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext'; // To ensure we're logged in
+import { useAuth } from '../context/AuthContext'; 
 
 function PatientReports() {
     const [reports, setReports] = useState([]);
@@ -10,51 +10,59 @@ function PatientReports() {
     const [file, setFile] = useState(null);
     const [error, setError] = useState('');
     const [uploading, setUploading] = useState(false);
-    const { user } = useAuth(); // Get user info
+    
+    // 1. Get authTokens from the context
+    const { user, authTokens } = useAuth(); 
 
-    // Function to fetch all reports from the backend
     const fetchReports = async () => {
+        // 2. Check if tokens exist before trying to fetch
+        if (!authTokens) {
+            setError('You must be logged in to see reports.');
+            return;
+        }
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/reports/');
+            // 3. Manually add the token to the header
+            const response = await axios.get('http://127.0.0.1:8000/api/reports/', {
+                headers: { Authorization: `Bearer ${authTokens.access}` }
+            });
             setReports(response.data);
+            setError(''); // Clear error on success
         } catch (err) {
             console.error('Error fetching reports:', err);
             setError('Could not load reports.');
         }
     };
 
-    // UseEffect to fetch reports when the component first loads
+    // Re-fetch reports if the user or token changes
     useEffect(() => {
         if (user) {
             fetchReports();
         }
-    }, [user]); // Re-run if user changes
+    }, [user, authTokens]); // <-- Add authTokens as a dependency
 
-    // Handle the file upload form submission
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!file) {
             setError('Please select a file to upload.');
             return;
         }
-
         setUploading(true);
         setError('');
-
         const formData = new FormData();
         formData.append('title', title);
         formData.append('file', file);
 
         try {
-            // Post the new report to the API
-            await axios.post('http://127.0.0.1:8000/api/reports/', formData);
+            // 4. Manually add the token to the header
+            await axios.post('http://127.0.0.1:8000/api/reports/', formData, {
+                headers: { Authorization: `Bearer ${authTokens.access}` }
+            });
             
-            // Clear the form and refresh the list
             setTitle('');
             setFile(null);
-            e.target.reset(); // Reset file input
+            e.target.reset();
             setUploading(false);
-            fetchReports(); // Refresh the list
+            fetchReports();
         } catch (err) {
             console.error('Error uploading report:', err);
             setError('Upload failed. Please try again.');
@@ -62,14 +70,13 @@ function PatientReports() {
         }
     };
 
-    // Function to handle deletion
     const handleDelete = async (reportId) => {
-        // Show a confirmation dialog
         if (window.confirm('Are you sure you want to delete this report?')) {
             try {
-                // Send a DELETE request to our new endpoint
-                await axios.delete(`http://127.0.0.1:8000/api/reports/${reportId}/`);
-                // Refresh the list of reports
+                // 5. Manually add the token to the header
+                await axios.delete(`http://127.0.0.1:8000/api/reports/${reportId}/`, {
+                    headers: { Authorization: `Bearer ${authTokens.access}` }
+                });
                 fetchReports();
             } catch (err) {
                 console.error('Error deleting report:', err);
@@ -78,7 +85,6 @@ function PatientReports() {
         }
     };
 
-    // Helper to format the date
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
@@ -86,7 +92,6 @@ function PatientReports() {
 
     return (
         <>
-            {/* --- 1. Upload Report Form --- */}
             <Card className="theme-card mb-4">
                 <Card.Body>
                     <Card.Title className="theme-title">Upload New Report</Card.Title>
@@ -125,29 +130,27 @@ function PatientReports() {
                 </Card.Body>
             </Card>
 
-            {/* --- 2. List of Existing Reports --- */}
             <Card className="theme-card">
                 <Card.Body>
                     <Card.Title className="theme-title">My Medical Reports</Card.Title>
                     <ListGroup variant="flush">
                         {reports.length > 0 ? (
                             reports.map(report => (
-                                <ListGroup.Item key={report.id} className="d-flex justify-content-between align-items-center">
+                                <ListGroup.Item key={report.id} className="d-flex justify-content-between align-items-center" style={{backgroundColor: 'transparent', color: 'var(--text-primary)'}}>
                                     <div>
                                         <strong>{report.title}</strong>
                                         <br />
                                         <small className="text-muted">Uploaded: {formatDate(report.uploaded_at)}</small>
                                     </div>
-                                    <div> {/* Group buttons together */}
+                                    <div>
                                         <Button
                                             variant="outline-secondary"
                                             size="sm"
-                                            href={`http://127.0.0.1:8000${report.file}`} // Direct link
-                                            target="_blank" // Open in a new tab
+                                            href={`http://127.0.0.1:8000${report.file}`}
+                                            target="_blank"
                                         >
                                             View
                                         </Button>
-                                        
                                         <Button
                                             variant="outline-danger"
                                             size="sm"
@@ -156,7 +159,6 @@ function PatientReports() {
                                         >
                                             Delete
                                         </Button> 
-                                        {/* The extra '>' is now removed */}
                                     </div>
                                 </ListGroup.Item>
                             ))

@@ -1,37 +1,47 @@
 // src/App.js
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
-
-// Import Components
-import MainNavbar from './components/MainNavbar'; // <-- IMPORT NEW NAVBAR
-
-// Import Pages
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext'; 
+import Sidebar from './components/Sidebar'; 
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FindDoctors from './pages/FindDoctors';
+import MyConnections from './pages/MyConnections'; // <-- 1. IMPORT
 
-// Import your CSS
 import './index.css'; 
+
+const AppContent = () => {
+    const location = useLocation();
+    const { user } = useAuth(); 
+    const showSidebar = user && location.pathname !== '/login' && location.pathname !== '/signup';
+
+    return (
+        <div className={showSidebar ? "app-layout" : ""}>
+            {showSidebar && <Sidebar />}
+            <main className={showSidebar ? "main-content" : "main-content-full"}>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/" element={user ? <Dashboard /> : <Login />} />
+                    <Route path="/dashboard" element={<Dashboard />} /> 
+                    
+                    <Route path="/find-doctors" element={<FindDoctors />} />
+                    <Route path="/connections" element={<MyConnections />} /> {/* <-- 2. USE THE NEW COMPONENT */}
+                    
+                    <Route path="/chat" element={<div><h1 className="theme-title">Chat Room (Under Construction)</h1></div>} />
+                    <Route path="/calendar" element={<div><h1 className="theme-title">Calendar (Under Construction)</h1></div>} />
+                    <Route path="/settings" element={<div><h1 className="theme-title">Settings (Under Construction)</h1></div>} />
+                </Routes>
+            </main>
+        </div>
+    );
+};
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="App">
-        {/* --- 1. USE THE "SMART" NAVBAR --- */}
-        <MainNavbar />
-
-        <Container fluid className="app-container">
-          <Routes>
-            <Route path="/" element={<Login />} /> 
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} /> 
-            <Route path="/find-doctors" element={<FindDoctors />} />
-          </Routes>
-        </Container>
-      </div>
+      <AppContent /> 
     </BrowserRouter>
   );
 }

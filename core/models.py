@@ -100,9 +100,7 @@ class DoctorProfile(models.Model):
     def get_photo_upload_path(instance, filename):
         return f'doctors/{instance.user.email}/photo_{filename}'
 
-    # --- THIS LINE IS NOW FIXED ---
     medical_degree_certificate = models.FileField(upload_to=get_degree_upload_path, null=True, blank=True)
-    
     medical_registration_certificate = models.FileField(upload_to=get_reg_upload_path, null=True, blank=True)
     profile_photo = models.ImageField(upload_to=get_photo_upload_path, null=True, blank=True)
     bio = models.TextField(max_length=250, blank=True)

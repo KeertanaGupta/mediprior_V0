@@ -55,6 +55,9 @@ class User(AbstractBaseUser):
         return self.is_admin
 
 # --- Patient Profile ---
+def get_patient_photo_upload_path(instance, filename):
+    return f'patients/{instance.user.email}/photo_{filename}'
+
 class PatientProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True, related_name='patient_profile')
     name = models.CharField(max_length=255)
@@ -65,6 +68,9 @@ class PatientProfile(models.Model):
     height = models.FloatField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
     medical_history = models.TextField(blank=True)
+    
+    # --- ADD THIS LINE ---
+    profile_photo = models.ImageField(upload_to=get_patient_photo_upload_path, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -156,3 +162,29 @@ class DoctorPatientConnection(models.Model):
 
     def __str__(self):
         return f"{self.patient.email} -> {self.doctor.email} ({self.status})"
+
+# --- NEW: Patient Health Metrics ---
+class PatientHealthMetric(models.Model):
+    # Link to the Patient Profile, not the User, for clarity
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE, related_name='health_metrics')
+    
+    # Core Vitals
+    recorded_at = models.DateTimeField(auto_now_add=True)
+    heart_rate_bpm = models.IntegerField(blank=True, null=True) # Heart Rate
+    blood_pressure_systolic = models.IntegerField(blank=True, null=True) # e.g., 120
+    blood_pressure_diastolic = models.IntegerField(blank=True, null=True) # e.g., 80
+    blood_count = models.FloatField(blank=True, null=True) # e.g., 80-90
+    glucose_level_mg_dl = models.FloatField(blank=True, null=True) # e.g., 230
+    
+    # Other metrics from your plan
+    sleep_hours = models.FloatField(blank=True, null=True)
+    steps_taken = models.IntegerField(blank=True, null=True)
+    mood = models.CharField(max_length=50, blank=True)
+    symptoms = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-recorded_at'] # Show the most recent metrics first
+
+    def __str__(self):
+        return f"Health Metrics for {self.patient.name} ({self.recorded_at.strftime('%Y-%m-%d')})"
+    

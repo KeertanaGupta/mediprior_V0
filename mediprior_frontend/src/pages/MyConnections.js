@@ -9,10 +9,13 @@ function MyConnections() {
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const { user, authTokens } = useAuth();
+    const { user, authTokens, fetchProfile } = useAuth(); // <-- Add fetchProfile
 
+    // Re-usable function to fetch connections
     const fetchConnections = async () => {
         if (!authTokens) return;
+        setLoading(true);
+        setError('');
         try {
             const response = await axios.get('http://127.0.0.1:8000/api/connections/', {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
@@ -26,9 +29,12 @@ function MyConnections() {
         }
     };
 
+    // Fetch connections when the component loads
     useEffect(() => {
-        fetchConnections();
-    }, [authTokens]);
+        if (user) { // Fetch for either user type
+            fetchConnections();
+        }
+    }, [user, authTokens]);
 
     // --- DOCTOR: Function to Accept or Reject ---
     const handleAction = async (connectionId, action) => {
@@ -38,6 +44,8 @@ function MyConnections() {
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );
             fetchConnections(); // Refresh the list
+            // also refresh the sidebar count
+            if (fetchProfile) fetchProfile(); 
         } catch (err) {
             console.error('Error managing connection:', err);
             setError('Action failed. Please try again.');
@@ -46,7 +54,8 @@ function MyConnections() {
     
     // --- PATIENT: Function to Remove a Connection ---
     const handleRemove = async (doctorId) => {
-        if (window.confirm('Are you sure you want to remove this connection?')) {
+        const confirmMsg = "Are you sure you want to remove this connection?";
+        if (window.confirm(confirmMsg)) {
             try {
                 await axios.delete(`http://127.0.0.1:8000/api/connections/${doctorId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
@@ -59,11 +68,14 @@ function MyConnections() {
         }
     };
 
+    // Helper to get avatar
     const getAvatar = (profile) => {
         if (profile?.profile_photo) {
             return `http://127.0.0.1:8000${profile.profile_photo}`;
         }
-        return `https://ui-avatars.com/api/?name=${profile?.name || 'User'}&background=3a7bff&color=fff&rounded=true`;
+        // Use a default name if profile is null
+        const name = profile?.name || (user.user_type === 'PATIENT' ? 'Doctor' : 'Patient');
+        return `https://ui-avatars.com/api/?name=${name}&background=3a7bff&color=fff&rounded=true`;
     };
 
     // --- View for Doctors ---
@@ -77,9 +89,11 @@ function MyConnections() {
                     <ListGroup>
                         {pending.length > 0 ? pending.map(conn => (
                             <ListGroup.Item key={conn.id} className="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div className="d-flex align-items-center">
                                     <img src={getAvatar(conn.patient_profile)} alt="Patient" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '15px' }} />
-                                    <strong>{conn.patient_profile?.name || 'Patient'}</strong>
+                                    <div>
+                                        <strong className="theme-title">{conn.patient_profile?.name || 'Patient'}</strong>
+                                    </div>
                                 </div>
                                 <div>
                                     <Button variant="success" className="me-2" onClick={() => handleAction(conn.id, 'ACCEPT')}>
@@ -97,9 +111,11 @@ function MyConnections() {
                     <ListGroup>
                         {accepted.length > 0 ? accepted.map(conn => (
                             <ListGroup.Item key={conn.id} className="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div className="d-flex align-items-center">
                                     <img src={getAvatar(conn.patient_profile)} alt="Patient" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '15px' }} />
-                                    <strong>{conn.patient_profile?.name || 'Patient'}</strong>
+                                    <div>
+                                        <strong className="theme-title">{conn.patient_profile?.name || 'Patient'}</strong>
+                                    </div>
                                 </div>
                                 <Button variant="outline-primary" size="sm" disabled>Message (Soon)</Button>
                             </ListGroup.Item>
@@ -112,43 +128,85 @@ function MyConnections() {
 
     // --- View for Patients ---
     const renderPatientView = () => {
+        const pending = connections.filter(c => c.status === 'PENDING');
+        const accepted = connections.filter(c => c.status === 'ACCEPTED');
+        const rejected = connections.filter(c => c.status === 'REJECTED');
+
         return (
-            <Card className="theme-card">
-                <Card.Body>
-                    <Card.Title className="theme-title">My Doctors</Card.Title>
-                    <ListGroup variant="flush">
-                        {connections.length > 0 ? connections.map(conn => (
+            <Tabs defaultActiveKey="network" id="connections-tabs" className="mb-3" justify>
+                <Tab eventKey="network" title={`My Network (${accepted.length})`}>
+                    <ListGroup>
+                        {accepted.length > 0 ? accepted.map(conn => (
                             <ListGroup.Item key={conn.id} className="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div className="d-flex align-items-center">
                                     <img src={getAvatar(conn.doctor_profile)} alt="Doctor" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '15px' }} />
-                                    <strong>{conn.doctor_profile?.name || 'Doctor'}</strong>
-                                    <br/>
-                                    <small className="text-muted">{conn.doctor_profile?.specialization || ''}</small>
-                                </div>
-                                {conn.status === 'ACCEPTED' && (
                                     <div>
-                                        <Button variant="outline-primary" size="sm" className="me-2" disabled>Message (Soon)</Button>
-                                        <Button variant="outline-danger" size="sm" onClick={() => handleRemove(conn.doctor_profile.user_id)}>
-                                            Remove
-                                        </Button>
+                                        <strong className="theme-title">{conn.doctor_profile?.name || 'Doctor'}</strong>
+                                        <br/>
+                                        <small className="text-muted">{conn.doctor_profile?.specialization || ''}</small>
                                     </div>
-                                )}
-                                {conn.status === 'PENDING' && (
-                                    <Button variant="outline-secondary" size="sm" disabled>Pending</Button>
-                                )}
-                                {conn.status === 'REJECTED' && (
-                                    <Button variant="danger" size="sm" onClick={() => handleRemove(conn.doctor_profile.user_id)}>
-                                        Rejected (Remove)
+                                </div>
+                                <div>
+                                    <Button variant="outline-primary" size="sm" className="me-2" disabled>Message (Soon)</Button>
+                                    <Button 
+                                        variant="outline-danger" 
+                                        size="sm" 
+                                        onClick={() => handleRemove(conn.doctor_profile.user_id)}
+                                    >
+                                        <FiX /> Remove
                                     </Button>
-                                )}
+                                </div>
                             </ListGroup.Item>
-                        )) : <p className="text-muted">You have no connections. Use the "Find Doctors" page to connect.</p>}
+                        )) : <p className="text-muted">You have no accepted connections yet.</p>}
                     </ListGroup>
-                </Card.Body>
-            </Card>
+                </Tab>
+                <Tab eventKey="requests" title={`Requests Sent (${pending.length})`}>
+                    <ListGroup>
+                        {pending.length > 0 ? pending.map(conn => (
+                            <ListGroup.Item key={conn.id} className="d-flex justify-content-between align-items-center">
+                                <div className="d-flex align-items-center">
+                                    <img src={getAvatar(conn.doctor_profile)} alt="Doctor" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '15px' }} />
+                                    <div>
+                                        <strong className="theme-title">{conn.doctor_profile?.name || 'Doctor'}</strong>
+                                    </div>
+                                </div>
+                                <Button 
+                                    variant="outline-secondary" 
+                                    size="sm"
+                                    onClick={() => handleRemove(conn.doctor_profile.user_id)}
+                                >
+                                    Cancel Request
+                                </Button>
+                            </ListGroup.Item>
+                        )) : <p className="text-muted">You have no pending requests.</p>}
+                    </ListGroup>
+                </Tab>
+                <Tab eventKey="rejected" title={`Rejected (${rejected.length})`}>
+                     <ListGroup>
+                        {rejected.length > 0 ? rejected.map(conn => (
+                            <ListGroup.Item key={conn.id} className="d-flex justify-content-between align-items-center">
+                                <div className="d-flex align-items-center">
+                                    <img src={getAvatar(conn.doctor_profile)} alt="Doctor" style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '15px' }} />
+                                    <div>
+                                        <strong className="theme-title">{conn.doctor_profile?.name || 'Doctor'}</strong>
+                                    </div>
+                                </div>
+                                <Button 
+                                    variant="outline-danger" 
+                                    size="sm"
+                                    onClick={() => handleRemove(conn.doctor_profile.user_id)}
+                                >
+                                    Remove
+                                </Button>
+                            </ListGroup.Item>
+                        )) : <p className="text-muted">You have no rejected requests.</p>}
+                    </ListGroup>
+                </Tab>
+            </Tabs>
         );
     };
 
+    // --- Main Render Logic ---
     if (loading) {
         return <div className="text-center mt-5"><Spinner animation="border" style={{ color: 'var(--accent-primary)' }}/></div>;
     }
@@ -158,7 +216,9 @@ function MyConnections() {
             <h1 className="theme-title mb-4">My Connections</h1>
             {error && <Alert variant="danger">{error}</Alert>}
             
-            {user?.user_type === 'DOCTOR' ? renderDoctorView() : renderPatientView()}
+            {/* This is the new, smart logic */}
+            {user?.user_type === 'DOCTOR' && renderDoctorView()}
+            {user?.user_type === 'PATIENT' && renderPatientView()}
         </Container>
     );
 }

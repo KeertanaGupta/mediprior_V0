@@ -7,10 +7,9 @@ import { useTheme } from '../context/ThemeContext';
 import axios from 'axios';
 import { 
     FiGrid, FiMessageSquare, FiCalendar, FiSettings, 
-    FiLogOut, FiSun, FiMoon, FiUsers, FiSearch  
+    FiLogOut, FiSun, FiMoon, FiUsers, FiSearch, FiFileText  
 } from 'react-icons/fi';
 
-// (sidebarStyle, logoStyle, navLinkStyle are unchanged)
 const sidebarStyle = {
     backgroundColor: 'var(--bg-secondary)', 
     width: '250px',
@@ -21,7 +20,8 @@ const sidebarStyle = {
     padding: '1.5rem',
     display: 'flex',
     flexDirection: 'column',
-    borderRight: '1px solid var(--border-color)'
+    borderRight: '1px solid var(--border-color)',
+    zIndex: 1000 // Ensure sidebar is above other content
 };
 const logoStyle = {
     fontSize: '1.5rem',
@@ -39,14 +39,13 @@ const navLinkStyle = {
     borderRadius: '8px'
 };
 
+
 function Sidebar() {
     const { user, logoutUser, profile, authTokens } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
-
     const [pendingCount, setPendingCount] = useState(0);
 
-    // Effect to fetch pending connection count for doctors
     useEffect(() => {
         if (user?.user_type === 'DOCTOR' && authTokens) {
             const fetchPendingConnections = async () => {
@@ -62,7 +61,7 @@ function Sidebar() {
             };
             fetchPendingConnections();
         }
-    }, [user, authTokens, profile]); // Re-fetch on login or profile update
+    }, [user, authTokens, profile]); 
 
     const handleLogout = () => {
         logoutUser();
@@ -85,31 +84,40 @@ function Sidebar() {
                 </div>
             </div>
 
-            {/* --- UPDATED NAVIGATION LOGIC --- */}
             <Nav className="flex-column" as="ul" style={{ listStyle: 'none', padding: 0 }}>
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/dashboard" style={navLinkStyle}>
-                        <FiGrid style={{ marginRight: '10px' }} /> Dashboard
+                        <span> 
+                            <FiGrid style={{ marginRight: '10px' }} /> Dashboard
+                        </span>
                     </Nav.Link>
                 </Nav.Item>
                 
-                {/* --- This link ONLY shows for PATIENTS --- */}
                 {user?.user_type === 'PATIENT' && (
-                    <Nav.Item as="li">
-                        <Nav.Link as={NavLink} to="/find-doctors" style={navLinkStyle}>
-                            <FiSearch style={{ marginRight: '10px' }} /> Find Doctors
-                        </Nav.Link>
-                    </Nav.Item>
+                    <>
+                        <Nav.Item as="li">
+                            <Nav.Link as={NavLink} to="/find-doctors" style={navLinkStyle}>
+                                <span>
+                                    <FiSearch style={{ marginRight: '10px' }} /> Find Doctors
+                                </span>
+                            </Nav.Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Nav.Link as={NavLink} to="/reports" style={navLinkStyle}>
+                                <span>
+                                    <FiFileText style={{ marginRight: '10px' }} /> My Reports
+                                </span>
+                            </Nav.Link>
+                        </Nav.Item>
+                    </>
                 )}
                 
-                {/* --- This link shows for EVERYONE --- */}
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/connections" style={navLinkStyle}>
                         <div className="d-flex justify-content-between align-items-center w-100">
                             <span className="d-flex align-items-center">
                                 <FiUsers style={{ marginRight: '10px' }} /> My Connections
                             </span>
-                            {/* --- THE BADGE (Only for Doctors with requests) --- */}
                             {user?.user_type === 'DOCTOR' && pendingCount > 0 && (
                                 <Badge pill bg="danger">{pendingCount}</Badge>
                             )}
@@ -119,19 +127,22 @@ function Sidebar() {
                 
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/chat" style={navLinkStyle}>
-                        <FiMessageSquare style={{ marginRight: '10px' }} /> Chat Room
+                        <span>
+                            <FiMessageSquare style={{ marginRight: '10px' }} /> Chat Room
+                        </span>
                     </Nav.Link>
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/calendar" style={navLinkStyle}>
-                        <FiCalendar style={{ marginRight: '10px' }} /> Calendar
+                        <span>
+                            <FiCalendar style={{ marginRight: '10px' }} /> Calendar
+                        </span>
                     </Nav.Link>
                 </Nav.Item>
             </Nav>
 
-            {/* (Rest of component is unchanged) */}
+            {/* (Bottom Nav) */}
             <Nav className="flex-column mt-auto" as="ul" style={{ listStyle: 'none', padding: 0 }}>
-                {/* ... theme toggle ... */}
                 <Nav.Item as="li" className="d-flex align-items-center justify-content-center mb-2" style={{color: 'var(--text-secondary)'}}>
                     <FiSun size={18} />
                     <Form.Check
@@ -145,24 +156,21 @@ function Sidebar() {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/settings" style={navLinkStyle}>
-                        <FiSettings style={{ marginRight: '10px' }} /> Settings
+                        <span>
+                            <FiSettings style={{ marginRight: '10px' }} /> Settings
+                        </span>
                     </Nav.Link>
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Nav.Link onClick={handleLogout} style={{...navLinkStyle, cursor: 'pointer'}}>
-                        <FiLogOut style={{ marginRight: '10px' }} /> Log Out
+                        <span>
+                            <FiLogOut style={{ marginRight: '10px' }} /> Log Out
+                        </span>
                     </Nav.Link>
                 </Nav.Item>
             </Nav>
         </div>
     );
 }
-
-const MemoizedNavLink = React.memo(Nav.Link);
-Sidebar.defaultProps = {
-    Nav: {
-        Link: MemoizedNavLink
-    }
-};
 
 export default Sidebar;

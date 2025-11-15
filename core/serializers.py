@@ -1,13 +1,14 @@
 # core/serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from .models import User, PatientProfile, DoctorProfile, MedicalReport, DoctorPatientConnection
+from .models import User, PatientProfile, DoctorProfile, MedicalReport, DoctorPatientConnection, PatientHealthMetric
 
-# --- Serializer for Custom Token ---
+# --- Serializer for Custom Token (adds user_type) ---
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
+        # Add custom claims
         token['user_type'] = user.user_type
         token['email'] = user.email
         return token
@@ -26,7 +27,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class PatientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientProfile
-        fields = ('name', 'dob', 'gender', 'blood_group', 'phone_number', 'height', 'weight', 'medical_history')
+        fields = ('name', 'dob', 'gender', 'blood_group', 'phone_number', 'height', 'weight', 'medical_history', 'profile_photo')
+        extra_kwargs = {
+            'profile_photo': {'required': False},
+        }
 
 # --- Serializer for Doctor Profile ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
@@ -41,9 +45,6 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
             'profile_photo', 'bio', 'verification_status'
         )
         read_only_fields = ('verification_status',)
-        
-        # --- THIS IS THE FIX ---
-        # Make file fields optional on updates.
         extra_kwargs = {
             'medical_degree_certificate': {'required': False},
             'medical_registration_certificate': {'required': False},
@@ -57,7 +58,7 @@ class MedicalReportSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'file', 'uploaded_at')
         read_only_fields = ('uploaded_at',)
 
-# --- Serializer for Public Doctor List (FIXED) ---
+# --- Serializer for Public Doctor List (with Connection Status) ---
 class DoctorPublicProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     user_id = serializers.IntegerField(source='user.id', read_only=True)
@@ -68,22 +69,24 @@ class DoctorPublicProfileSerializer(serializers.ModelSerializer):
         fields = (
             'user_id', 'name', 'email', 'specialization', 'qualification', 
             'years_of_experience', 'clinic_name', 'profile_photo', 'bio',
-            'connection_status' # <-- This field was missing
+            'connection_status'
         )
 
     def get_connection_status(self, obj):
+        if 'request' not in self.context or self.context['request'] is None:
+            return None
         doctor_user = obj.user
         patient_user = self.context['request'].user
         
         if doctor_user == patient_user:
-            return "SELF" # Fix for doctor seeing themself
+            return "SELF" 
             
         try:
             connection = DoctorPatientConnection.objects.get(
                 patient=patient_user, 
                 doctor=doctor_user
             )
-            return connection.status # Return "PENDING" or "ACCEPTED"
+            return connection.status
         except DoctorPatientConnection.DoesNotExist:
             return None
 
@@ -130,11 +133,25 @@ class ConnectionRequestSerializer(serializers.Serializer):
             
         return connection
 
-# --- NEW: Serializer for "My Connections" page ---
+# --- Serializer for "My Connections" page ---
 class ConnectionListSerializer(serializers.ModelSerializer):
     patient_profile = PatientProfileSerializer(source='patient.patient_profile', read_only=True)
-    doctor_profile = DoctorPublicProfileSerializer(source='doctor.doctor_profile', read_only=True, context={'request': None}) # Pass None context
+    # The 'context' override is REMOVED. It will now inherit the context
+    # from the view, which fixes the crash.
+    doctor_profile = DoctorPublicProfileSerializer(source='doctor.doctor_profile', read_only=True) 
 
     class Meta:
         model = DoctorPatientConnection
         fields = ('id', 'patient_profile', 'doctor_profile', 'status', 'created_at')
+
+# --- Serializer for Patient Health Metrics ---
+class PatientHealthMetricSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientHealthMetric
+        fields = [
+            'id', 'recorded_at', 'heart_rate_bpm', 
+            'blood_pressure_systolic', 'blood_pressure_diastolic',
+            'blood_count', 'glucose_level_mg_dl', 'sleep_hours', 
+            'steps_taken', 'mood', 'symptoms'
+        ]
+        read_only_fields = ('id', 'recorded_at')

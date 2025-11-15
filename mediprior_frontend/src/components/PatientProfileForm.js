@@ -15,12 +15,14 @@ function PatientProfileForm({ onComplete, profile }) {
     const [height, setHeight] = useState('');
     const [weight, setWeight] = useState('');
     const [medicalHistory, setMedicalHistory] = useState('');
+    const [profilePhoto, setProfilePhoto] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     // 2. GET THE TOKEN
     const { authTokens } = useAuth(); 
+    const fileBaseUrl = 'http://127.0.0.1:8000';
 
     useEffect(() => {
         if (profile) {
@@ -40,24 +42,31 @@ function PatientProfileForm({ onComplete, profile }) {
         setError('');
         setLoading(true);
 
-        const profileData = {
-            name, dob, gender,
-            blood_group: bloodGroup,
-            phone_number: phoneNumber,
-            height: parseFloat(height) || null,
-            weight: parseFloat(weight) || null,
-            medical_history: medicalHistory
-        };
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('dob', dob);
+        formData.append('gender', gender);
+        formData.append('blood_group', bloodGroup);
+        formData.append('phone_number', phoneNumber);
+        formData.append('height', parseFloat(height) || null);
+        formData.append('weight', parseFloat(weight) || null);
+        formData.append('medical_history', medicalHistory);
+        
+        if (profilePhoto) {
+            formData.append('profile_photo', profilePhoto);
+        }
 
         try {
-            // 3. ADD THE TOKEN TO THE REQUEST
-            await axios.post('http://127.0.0.1:8000/api/profile/', profileData, {
-                headers: { Authorization: `Bearer ${authTokens.access}` }
+            // 5. SEND FORMDATA WITH TOKEN
+            await axios.post('http://127.0.0.1:8000/api/profile/', formData, {
+                headers: { 
+                    'Content-Type': 'multipart/form-data', // Let axios set this
+                    Authorization: `Bearer ${authTokens.access}` 
+                }
             });
             
             setLoading(false);
             if(onComplete) onComplete();
-            else navigate(0);
         } catch (apiError) {
             setLoading(false);
             console.error('Profile setup error:', apiError.response);
@@ -70,12 +79,19 @@ function PatientProfileForm({ onComplete, profile }) {
             <h2 className="text-center mb-4 theme-title">
                 {profile ? 'Edit Your Profile' : 'Complete Your Profile'}
             </h2>
-            <p className="text-center text-muted mb-4">
-                This information will help us personalize your experience.
-            </p>
             {error && <Alert variant="danger">{error}</Alert>}
+
+            {/* 6. ADD PROFILE PHOTO UPLOAD FIELD */}
+            <Form.Group className="mb-3" controlId="patientPhoto">
+                <Form.Label>Profile Photo (Optional)</Form.Label>
+                <Form.Control type="file" onChange={(e) => setProfilePhoto(e.target.files[0])} className="theme-input" />
+                {profile && profile.profile_photo && (
+                    <Form.Text className="text-muted">
+                        Current photo: <a href={`${fileBaseUrl}${profile.profile_photo}`} target="_blank" rel="noopener noreferrer">View</a>
+                    </Form.Text>
+                )}
+            </Form.Group>
             
-            {/* (The rest of your form JSX is unchanged) */}
             <Row>
                 <Col md={6}><Form.Group className="mb-3" controlId="patientName"><Form.Label>Full Name</Form.Label><Form.Control type="text" value={name} onChange={(e) => setName(e.target.value)} className="theme-input" required /></Form.Group></Col>
                 <Col md={6}><Form.Group className="mb-3" controlId="patientPhone"><Form.Label>Phone Number</Form.Label><PhoneInput international defaultCountry="IN" value={phoneNumber} onChange={setPhoneNumber} className="theme-input" /></Form.Group></Col>

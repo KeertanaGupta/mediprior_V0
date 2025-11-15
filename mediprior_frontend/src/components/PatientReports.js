@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Form, Row, Col, Alert, Spinner, ListGroup } from 'react-bootstrap';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext'; 
+// --- THIS IS THE FIX ---
+import { useAuth } from '../context/AuthContext'; // It was ../../
 
 function PatientReports() {
     const [reports, setReports] = useState([]);
@@ -11,34 +12,30 @@ function PatientReports() {
     const [error, setError] = useState('');
     const [uploading, setUploading] = useState(false);
     
-    // 1. Get authTokens from the context
     const { user, authTokens } = useAuth(); 
 
     const fetchReports = async () => {
-        // 2. Check if tokens exist before trying to fetch
         if (!authTokens) {
             setError('You must be logged in to see reports.');
             return;
         }
         try {
-            // 3. Manually add the token to the header
             const response = await axios.get('http://127.0.0.1:8000/api/reports/', {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setReports(response.data);
-            setError(''); // Clear error on success
+            setError(''); 
         } catch (err) {
             console.error('Error fetching reports:', err);
             setError('Could not load reports.');
         }
     };
 
-    // Re-fetch reports if the user or token changes
     useEffect(() => {
         if (user) {
             fetchReports();
         }
-    }, [user, authTokens]); // <-- Add authTokens as a dependency
+    }, [user, authTokens]); 
 
     const handleUpload = async (e) => {
         e.preventDefault();
@@ -53,9 +50,11 @@ function PatientReports() {
         formData.append('file', file);
 
         try {
-            // 4. Manually add the token to the header
             await axios.post('http://127.0.0.1:8000/api/reports/', formData, {
-                headers: { Authorization: `Bearer ${authTokens.access}` }
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${authTokens.access}` 
+                }
             });
             
             setTitle('');
@@ -73,7 +72,6 @@ function PatientReports() {
     const handleDelete = async (reportId) => {
         if (window.confirm('Are you sure you want to delete this report?')) {
             try {
-                // 5. Manually add the token to the header
                 await axios.delete(`http://127.0.0.1:8000/api/reports/${reportId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
@@ -136,7 +134,11 @@ function PatientReports() {
                     <ListGroup variant="flush">
                         {reports.length > 0 ? (
                             reports.map(report => (
-                                <ListGroup.Item key={report.id} className="d-flex justify-content-between align-items-center" style={{backgroundColor: 'transparent', color: 'var(--text-primary)'}}>
+                                <ListGroup.Item 
+                                    key={report.id} 
+                                    className="d-flex justify-content-between align-items-center"
+                                    style={{backgroundColor: 'transparent', color: 'var(--text-primary)'}}
+                                >
                                     <div>
                                         <strong>{report.title}</strong>
                                         <br />
@@ -149,8 +151,9 @@ function PatientReports() {
                                             href={`http://127.0.0.1:8000${report.file}`}
                                             target="_blank"
                                         >
-                                            View
+                                            View/Export
                                         </Button>
+                                        
                                         <Button
                                             variant="outline-danger"
                                             size="sm"

@@ -12,23 +12,23 @@ from .models import (
     DoctorProfile, 
     MedicalReport, 
     User,
-    DoctorPatientConnection
+    DoctorPatientConnection,
+    PatientHealthMetric
 )
 
-# --- THIS IS THE CORRECTED IMPORT LIST ---
+# Import all serializers
 from .serializers import (
     UserRegistrationSerializer, 
     PatientProfileSerializer, 
     DoctorProfileSerializer, 
-    MyTokenObtainPairSerializer, # <-- THIS WAS THE TYPO
+    MyTokenObtainPairSerializer,
     MedicalReportSerializer,
     DoctorPublicProfileSerializer, 
     ConnectionRequestSerializer,
-    ConnectionListSerializer
+    ConnectionListSerializer,
+    PatientHealthMetricSerializer
 )
-# ----------------------------------------
 
-# --- UserRegistrationView (Unchanged) ---
 class UserRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
     def post(self, request):
@@ -38,7 +38,6 @@ class UserRegistrationView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- ProfileView (Unchanged) ---
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser) 
@@ -71,7 +70,6 @@ class ProfileView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- MedicalReportView (Unchanged) ---
 class MedicalReportView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser) 
@@ -86,7 +84,6 @@ class MedicalReportView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- MedicalReportDetailView (Unchanged) ---
 class MedicalReportDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get_object(self, pk, user):
@@ -100,11 +97,9 @@ class MedicalReportDetailView(APIView):
         report.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-# --- MyTokenObtainPairView (This is a VIEW) ---
 class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer # <-- This links to the serializer
+    serializer_class = MyTokenObtainPairSerializer
 
-# --- VerifiedDoctorListView ---
 class VerifiedDoctorListView(APIView):
     permission_classes = [permissions.IsAuthenticated] 
     def get(self, request):
@@ -119,7 +114,6 @@ class VerifiedDoctorListView(APIView):
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# --- ConnectionRequestView ---
 class ConnectionRequestView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
@@ -134,7 +128,7 @@ class ConnectionRequestView(APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- DoctorConnectionView ---
+# --- THIS IS THE MISSING VIEW ---
 class DoctorConnectionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
@@ -171,7 +165,7 @@ class DoctorConnectionView(APIView):
         else:
             return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
 
-# --- PatientConnectionDetailView ---
+# --- THIS IS THE OTHER MISSING VIEW ---
 class PatientConnectionDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def delete(self, request, doctor_id, format=None):
@@ -182,4 +176,26 @@ class PatientConnectionDetailView(APIView):
             connection.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (User.DoesNotExist, DoctorPatientConnection.DoesNotExist):
-            return Response({"error": "Connection not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Connection not found."}, status=status.HTTP_44_NOT_FOUND)
+            
+class PatientHealthMetricView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not hasattr(request.user, 'patient_profile'):
+            return Response({"error": "Patient profile not found."}, status=status.HTTP_404_NOT_FOUND)
+            
+        metrics = PatientHealthMetric.objects.filter(patient=request.user.patient_profile)
+        serializer = PatientHealthMetricSerializer(metrics, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        if not hasattr(request.user, 'patient_profile'):
+            return Response({"error": "Patient profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PatientHealthMetricSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(patient=request.user.patient_profile)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

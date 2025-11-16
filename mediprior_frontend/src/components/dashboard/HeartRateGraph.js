@@ -1,45 +1,40 @@
 // src/components/dashboard/HeartRateGraph.js
 import React from 'react';
 import { Card } from 'react-bootstrap';
-import { Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement, // Changed from LineElement
-    Title,
-    Tooltip,
-    Legend,
+    Chart as ChartJS, CategoryScale, LinearScale,
+    PointElement, LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
+import { useTheme } from '../../context/ThemeContext'; // <-- 1. IMPORT THE THEME HOOK
 
-// Register the components we need for Chart.js
+// Register all required components for the chart
 ChartJS.register(
-    CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend
+    CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler
 );
 
-function HeartRateGraph({ metricsData }) { // Renamed prop to metricsData to avoid confusion
-    // Filter for heart rate and prepare data for the last 7 entries
-    const sortedMetrics = metricsData
-        ? [...metricsData].sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at))
-        : [];
-    const last7Metrics = sortedMetrics.slice(-7);
+function HeartRateGraph({ metrics }) {
+    const { theme } = useTheme(); // <-- 2. GET THE CURRENT THEME
 
-    const labels = last7Metrics.map(m => {
-        const date = new Date(m.recorded_at);
-        return date.toLocaleDateString('en-US', { weekday: 'short' }); // e.g., Mon, Tue
-    });
-    const dataPoints = last7Metrics.map(m => m.heart_rate_bpm);
+    // --- 3. SET COLORS BASED ON THE THEME ---
+    const lineColor = theme === 'light' ? '#4E4E4E' : '#FFFFFF'; // Black or White
+    const gridColor = theme === 'light' ? '#6c757d' : '#a0a6c0';
+    const gridBorderColor = theme === 'light' ? '#e8e8e4' : '#363a59';
+    // We'll keep the accent color for the area fill
+    const areaColor = theme === 'light' ? 'rgba(254, 200, 154, 0.2)' : 'rgba(58, 123, 255, 0.2)';
 
+    // Static data for now
     const data = {
-        labels: labels,
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [
             {
-                label: 'Heart Rate (bpm)',
-                data: dataPoints,
-                backgroundColor: 'var(--accent-primary)', // Use accent color
-                borderColor: 'var(--accent-primary)',
-                borderWidth: 1,
-                borderRadius: 5, // Rounded bars
+                label: 'Heart Rate',
+                data: [65, 68, 70, 66, 72, 71, 69],
+                fill: true,
+                backgroundColor: areaColor,
+                borderColor: lineColor, // <-- 4. APPLY THEME COLOR
+                pointBackgroundColor: lineColor,
+                tension: 0.4,
             },
         ],
     };
@@ -49,49 +44,15 @@ function HeartRateGraph({ metricsData }) { // Renamed prop to metricsData to avo
         maintainAspectRatio: false,
         plugins: {
             legend: { display: false },
-            title: {
-                display: false, // Title is in Card.Title
-            },
-            tooltip: {
-                backgroundColor: 'var(--bg-secondary)',
-                titleColor: 'var(--text-primary)',
-                bodyColor: 'var(--text-primary)',
-                borderColor: 'var(--border-color)',
-                borderWidth: 1,
-                cornerRadius: 8,
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += context.parsed.y + ' bpm';
-                        }
-                        return label;
-                    }
-                }
-            }
         },
         scales: {
             x: {
                 grid: { display: false },
-                ticks: { color: 'var(--text-secondary)' },
-                title: {
-                    display: false,
-                    text: 'Day',
-                    color: 'var(--text-primary)'
-                }
+                ticks: { color: gridColor } // <-- 5. APPLY THEME COLOR
             },
             y: {
-                beginAtZero: true,
-                grid: { color: 'var(--border-color)' }, // Lighter grid lines
-                ticks: { color: 'var(--text-secondary)' },
-                title: {
-                    display: false,
-                    text: 'Heart Rate (bpm)',
-                    color: 'var(--text-primary)'
-                }
+                grid: { color: gridBorderColor }, // <-- 6. APPLY THEME COLOR
+                ticks: { color: gridColor }
             },
         },
     };
@@ -99,13 +60,9 @@ function HeartRateGraph({ metricsData }) { // Renamed prop to metricsData to avo
     return (
         <Card className="theme-card h-100">
             <Card.Body>
-                <Card.Title className="theme-title mb-4">Heart Rate (Last 7 Days)</Card.Title>
-                <div style={{ height: '250px' }}> {/* Increased height for better chart display */}
-                    {metricsData && metricsData.length > 0 && dataPoints.length > 0 ? (
-                        <Bar options={options} data={data} />
-                    ) : (
-                        <p className="text-muted text-center mt-5">No heart rate data available yet.</p>
-                    )}
+                <Card.Title className="theme-title">Heart Rate (Last 7 Days)</Card.Title>
+                <div style={{ height: '200px' }}>
+                    <Line options={options} data={data} />
                 </div>
             </Card.Body>
         </Card>

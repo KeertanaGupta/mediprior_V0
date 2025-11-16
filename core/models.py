@@ -188,3 +188,94 @@ class PatientHealthMetric(models.Model):
     def __str__(self):
         return f"Health Metrics for {self.patient.name} ({self.recorded_at.strftime('%Y-%m-%d')})"
     
+# --- NEW: Appointment System ---
+class Appointment(models.Model):
+    class AppointmentStatus(models.TextChoices):
+        AVAILABLE = 'AVAILABLE', 'Available'
+        BOOKED = 'BOOKED', 'Booked'
+        COMPLETED = 'COMPLETED', 'Completed'
+        CANCELED = 'CANCELED', 'Canceled'
+
+    class ConsultationType(models.TextChoices):
+        ONLINE = 'ONLINE', 'Online'
+        IN_PERSON = 'IN_PERSON', 'In-Person'
+
+    # The doctor who set this availability
+    doctor = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='doctor_appointments',
+        limit_choices_to={'user_type': User.UserType.DOCTOR}
+    )
+    
+    # The patient who booked this.
+    # This is NULL if the slot is still 'AVAILABLE'.
+    patient = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        related_name='patient_appointments',
+        limit_choices_to={'user_type': User.UserType.PATIENT},
+        null=True, 
+        blank=True
+    )
+    
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    
+    status = models.CharField(
+        max_length=20,
+        choices=AppointmentStatus.choices,
+        default=AppointmentStatus.AVAILABLE
+    )
+    
+    consultation_type = models.CharField(
+        max_length=20,
+        choices=ConsultationType.choices,
+        default=ConsultationType.IN_PERSON
+    )
+    
+    # These are for after the appointment
+    notes = models.TextField(blank=True) # Doctor's private notes
+    prescription = models.TextField(blank=True) # Patient-visible prescription
+
+    class Meta:
+        ordering = ['start_time']
+        # A doctor cannot have two appointments at the exact same time
+        unique_together = ('doctor', 'start_time')
+
+    def __str__(self):
+        if self.patient:
+            return f"Appt for {self.patient.email} with Dr. {self.doctor.doctor_profile.name} at {self.start_time}"
+        return f"Available slot for Dr. {self.doctor.doctor_profile.name} at {self.start_time}"
+    
+# --- NEW: Chat System Models ---
+
+class Conversation(models.Model):
+    """
+    A conversation between two or more users.
+    We will start with 1-on-1 between a patient and a doctor.
+    """
+    # We use a ManyToManyField so you can add more people later
+    # (e.g., a patient, a doctor, and a specialist)
+    participants = models.ManyToManyField(User, related_name='conversations')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Conversation {self.id}"
+
+
+class Message(models.Model):
+    """
+    A single message within a conversation.
+    """
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp'] # Show oldest messages first
+
+    def __str__(self):
+        return f"Message from {self.sender.email} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

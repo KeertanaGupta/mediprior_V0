@@ -12,7 +12,7 @@ function FindDoctors() {
     const [requestStatus, setRequestStatus] = useState({});
     const { authTokens } = useAuth();
 
-    const fetchDoctors = async () => {
+    const fetchDoctors = React.useCallback(async () => {
         if (!authTokens) return;
         setLoading(true);
         setError('');
@@ -26,17 +26,17 @@ function FindDoctors() {
             setError('Could not load doctors list.');
         }
         setLoading(false);
-    };
+    },[authTokens]);
 
     useEffect(() => {
         fetchDoctors();
-    }, [authTokens]);
+    }, [fetchDoctors]);
 
     // Handle sending a connection request
     const handleConnect = async (doctorId) => {
         setRequestStatus(prev => ({ ...prev, [doctorId]: 'Sending...' }));
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/connections/send/', 
+            await axios.post('http://127.0.0.1:8000/api/connections/send/', 
                 { doctor_id: doctorId }, 
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );

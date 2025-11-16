@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -71,8 +73,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "mediprior_backend.wsgi.application"
+ASGI_APPLICATION = "mediprior_backend.asgi.application"
 
+# Channel layer
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -137,3 +145,4 @@ REST_FRAMEWORK = {
 }
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+

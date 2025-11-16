@@ -1,7 +1,8 @@
 # core/serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-from .models import User, PatientProfile, DoctorProfile, MedicalReport, DoctorPatientConnection, PatientHealthMetric
+from .models import User, PatientProfile, DoctorProfile, MedicalReport, DoctorPatientConnection, PatientHealthMetric, Appointment
+from django.utils import timezone
 
 # --- Serializer for Custom Token (adds user_type) ---
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -11,6 +12,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         token['user_type'] = user.user_type
         token['email'] = user.email
+        token['user_id'] = user.id  # <-- THIS IS THE FIX
         return token
 
 # --- Serializer for User Registration ---
@@ -155,3 +157,38 @@ class PatientHealthMetricSerializer(serializers.ModelSerializer):
             'steps_taken', 'mood', 'symptoms'
         ]
         read_only_fields = ('id', 'recorded_at')
+        
+# --- NEW: Serializer for a Doctor to CREATE a time slot ---
+class AppointmentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Appointment
+        # Doctor only needs to provide the start and end time
+        fields = ('start_time', 'end_time', 'consultation_type')
+
+    def validate(self, data):
+        # A doctor can't create an appointment in the past
+        if data['start_time'] < timezone.now():
+            raise serializers.ValidationError("Cannot create appointment in the past.")
+        # A doctor can't create a slot that ends before it starts
+        if data['end_time'] <= data['start_time']:
+            raise serializers.ValidationError("End time must be after start time.")
+        return data
+
+# --- NEW: Serializer for LISTING/BOOKING appointments ---
+class AppointmentSerializer(serializers.ModelSerializer):
+    # We'll show the patient's and doctor's name
+    patient_name = serializers.CharField(source='patient.patient_profile.name', read_only=True)
+    doctor_name = serializers.CharField(source='doctor.doctor_profile.name', read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = (
+            'id', 'doctor', 'doctor_name', 'patient', 'patient_name', 
+            'start_time', 'end_time', 'status', 'consultation_type',
+            'notes', 'prescription'
+        )
+        # A patient can't change these fields when booking
+        read_only_fields = (
+            'doctor', 'doctor_name', 'patient_name', 'start_time', 'end_time',
+            'notes', 'prescription'
+        )

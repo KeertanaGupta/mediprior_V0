@@ -9,7 +9,9 @@ from .views import (
     ConnectionRequestView,
     DoctorConnectionView,        
     PatientConnectionDetailView, 
-    PatientHealthMetricView
+    PatientHealthMetricView,
+    AppointmentListView,
+    AppointmentDetailView
 )
 
 urlpatterns = [
@@ -25,4 +27,6 @@ urlpatterns = [
     path('connections/<int:doctor_id>/', PatientConnectionDetailView.as_view(), name='connection-detail'),
     
     path('health-metrics/', PatientHealthMetricView.as_view(), name='health-metrics'),
+    path('appointments/', AppointmentListView.as_view(), name='appointment-list'),
+    path('appointments/<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
 ]

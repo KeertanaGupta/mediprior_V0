@@ -1,7 +1,7 @@
 # core/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions
+from rest_framework import status, permissions, viewsets
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.http import Http404
@@ -9,11 +9,12 @@ from django.http import Http404
 # Import all models
 from .models import (
     PatientProfile, 
-    DoctorProfile, 
+    DoctorProfile,
     MedicalReport, 
     User,
     DoctorPatientConnection,
-    PatientHealthMetric
+    PatientHealthMetric,
+    Appointment
 )
 
 # Import all serializers
@@ -26,7 +27,9 @@ from .serializers import (
     DoctorPublicProfileSerializer, 
     ConnectionRequestSerializer,
     ConnectionListSerializer,
-    PatientHealthMetricSerializer
+    PatientHealthMetricSerializer,
+    AppointmentSerializer,
+    AppointmentCreateSerializer
 )
 
 class UserRegistrationView(APIView):
@@ -199,3 +202,92 @@ class PatientHealthMetricView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AppointmentListView(APIView):
+    """
+    Handles Listing and Creating Appointments.
+    - GET:
+        - Patient: sees their own booked appointments.
+        - Doctor: sees all their appointments (booked and available).
+    - POST:
+        - Doctor: creates new, available time slots.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        # Check for query param to see a doctor's AVAILABLE slots
+        doctor_id = self.request.query_params.get('doctor_id')
+        
+        if user.user_type == 'PATIENT':
+            if doctor_id:
+                # Patient is viewing a specific doctor's available slots
+                queryset = Appointment.objects.filter(
+                    doctor_id=doctor_id,
+                    status=Appointment.AppointmentStatus.AVAILABLE
+                )
+            else:
+                # Patient is viewing their own dashboard/schedule
+                queryset = Appointment.objects.filter(patient=user)
+        
+        elif user.user_type == 'DOCTOR':
+            # Doctor is viewing their own schedule
+            queryset = Appointment.objects.filter(doctor=user)
+        
+        else:
+            return Response({"error": "Invalid user type"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer = AppointmentSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        # This is ONLY for a DOCTOR to create new, available slots
+        if request.user.user_type != User.UserType.DOCTOR:
+            raise permissions.PermissionDenied("Only doctors can create appointment slots.")
+            
+        serializer = AppointmentCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                doctor=request.user,
+                status=Appointment.AppointmentStatus.AVAILABLE
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AppointmentDetailView(APIView):
+    """
+    Handles a single appointment.
+    - PATCH:
+        - Patient: Books an available slot.
+        - Doctor: (Future) Adds notes/prescription.
+    - DELETE:
+        - Patient/Doctor: Cancels an appointment.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        # This is for a PATIENT to book an available slot
+        if request.user.user_type != User.UserType.PATIENT:
+            raise permissions.PermissionDenied("Only patients can book appointments.")
+            
+        try:
+            appointment = Appointment.objects.get(
+                pk=pk, 
+                status=Appointment.AppointmentStatus.AVAILABLE
+            )
+        except Appointment.DoesNotExist:
+            return Response(
+                {"error": "This appointment slot is no longer available."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        # Book the appointment
+        appointment.patient = request.user
+        appointment.status = Appointment.AppointmentStatus.BOOKED
+        appointment.save()
+        
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)

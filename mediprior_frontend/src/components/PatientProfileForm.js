@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import PhoneInput from 'react-phone-number-input';
 import { useAuth } from '../context/AuthContext'; // <-- 1. IMPORT useAuth
 
@@ -18,7 +18,7 @@ function PatientProfileForm({ onComplete, profile }) {
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+    //const navigate = useNavigate();
 
     // 2. GET THE TOKEN
     const { authTokens } = useAuth(); 

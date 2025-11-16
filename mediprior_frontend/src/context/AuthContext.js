@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     const navigate = (path) => { window.location.href = path; };
 
     // This function can be called by any component to refresh the profile
-    const fetchProfile = async () => {
+    const fetchProfile = React.useCallback(async () => {
         const tokens = getTokensFromStorage();
         if (!tokens) {
             setLoading(false);
@@ -48,8 +48,8 @@ export const AuthProvider = ({ children }) => {
                 return 'error';
             }
         }
-    };
-
+    },[]);
+ 
     // --- Login Function ---
     const loginUser = async (email, password) => {
         try {
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         }
         loadData();
-    }, []); // Run only ONCE
+    }, [authTokens, profile, fetchProfile]);
 
     const contextData = {
         user: user,

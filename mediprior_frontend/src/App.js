@@ -6,13 +6,15 @@ import { useAuth } from './context/AuthContext';
 // Import Components
 import Sidebar from './components/Sidebar'; 
 
-// Import Pages (using YOUR file names)
+// Import Pages
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FindDoctors from './pages/FindDoctors';
 import MyConnections from './pages/MyConnections';
 import PatientReportsPage from './pages/PatientReportsPage';
+import CalendarPage from './pages/CalendarPage';
+import ChatPage from './pages/ChatPage';
 
 // Import your CSS
 import './index.css'; 
@@ -39,8 +41,8 @@ const AppContent = () => {
                     <Route path="/reports" element={<PatientReportsPage />} />
                     
                     {/* Placeholders */}
-                    <Route path="/chat" element={<div><h1 className="theme-title">Chat Room (Under Construction)</h1></div>} />
-                    <Route path="/calendar" element={<div><h1 className="theme-title">Calendar (Under Construction)</h1></div>} />
+                    <Route path="/chat" element={<ChatPage/>} />
+                    <Route path="/calendar" element={<CalendarPage/>} />
                     <Route path="/settings" element={<div><h1 className="theme-title">Settings (Under Construction)</h1></div>} />
                 </Routes>
             </main>

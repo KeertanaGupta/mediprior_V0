@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 
 // Import the icons for the list
 import {
-    FiUser, FiMail, FiPhone, FiMapPin, FiAward,
+    FiUser, FiMail, FiPhone, FiAward,
     FiBook, FiCheckSquare, FiBriefcase
 } from 'react-icons/fi';
 

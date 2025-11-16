@@ -14,7 +14,7 @@ function PatientReports() {
     
     const { user, authTokens } = useAuth(); 
 
-    const fetchReports = async () => {
+    const fetchReports = React.useCallback(async() => {
         if (!authTokens) {
             setError('You must be logged in to see reports.');
             return;
@@ -29,7 +29,7 @@ function PatientReports() {
             console.error('Error fetching reports:', err);
             setError('Could not load reports.');
         }
-    };
+    },[authTokens]);
 
     useEffect(() => {
         if (user) {

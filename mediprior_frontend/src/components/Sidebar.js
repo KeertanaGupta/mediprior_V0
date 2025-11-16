@@ -10,6 +10,7 @@ import {
     FiLogOut, FiSun, FiMoon, FiUsers, FiSearch, FiFileText  
 } from 'react-icons/fi';
 
+// (sidebarStyle, logoStyle, navLinkStyle are unchanged)
 const sidebarStyle = {
     backgroundColor: 'var(--bg-secondary)', 
     width: '250px',
@@ -21,7 +22,7 @@ const sidebarStyle = {
     display: 'flex',
     flexDirection: 'column',
     borderRight: '1px solid var(--border-color)',
-    zIndex: 1000 // Ensure sidebar is above other content
+    zIndex: 1000
 };
 const logoStyle = {
     fontSize: '1.5rem',
@@ -38,7 +39,6 @@ const navLinkStyle = {
     fontSize: '1.1rem',
     borderRadius: '8px'
 };
-
 
 function Sidebar() {
     const { user, logoutUser, profile, authTokens } = useAuth();
@@ -84,6 +84,7 @@ function Sidebar() {
                 </div>
             </div>
 
+            {/* --- THIS IS THE FIX FOR THE SVG WARNING --- */}
             <Nav className="flex-column" as="ul" style={{ listStyle: 'none', padding: 0 }}>
                 <Nav.Item as="li">
                     <Nav.Link as={NavLink} to="/dashboard" style={navLinkStyle}>
@@ -141,7 +142,6 @@ function Sidebar() {
                 </Nav.Item>
             </Nav>
 
-            {/* (Bottom Nav) */}
             <Nav className="flex-column mt-auto" as="ul" style={{ listStyle: 'none', padding: 0 }}>
                 <Nav.Item as="li" className="d-flex align-items-center justify-content-center mb-2" style={{color: 'var(--text-secondary)'}}>
                     <FiSun size={18} />

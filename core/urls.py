@@ -11,7 +11,8 @@ from .views import (
     PatientConnectionDetailView, 
     PatientHealthMetricView,
     AppointmentListView,
-    AppointmentDetailView
+    AppointmentDetailView,
+    AIChatView
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path('health-metrics/', PatientHealthMetricView.as_view(), name='health-metrics'),
     path('appointments/', AppointmentListView.as_view(), name='appointment-list'),
     path('appointments/<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
+    path('ai-chat/', AIChatView.as_view(), name='ai-chat'),
 ]

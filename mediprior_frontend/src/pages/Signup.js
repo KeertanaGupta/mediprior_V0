@@ -109,17 +109,21 @@ function Signup() {
                                     />
                                 </Form.Group>
 
-                                <Form.Group className="mb-3" controlId="formUserType">
-                                    <Form.Label>I am a:</Form.Label>
-                                    <Form.Select 
-                                        value={userType}
-                                        onChange={(e) => setUserType(e.target.value)}
-                                        className="theme-input" // <-- Uses new theme class
-                                    >
-                                        <option value="PATIENT">Patient</option>
-                                        <option value="DOCTOR">Doctor</option>
-                                    </Form.Select>
-                                </Form.Group>
+                                <Form.Group className="mb-3" controlId="formBasicPassword">
+                                    <Form.Label>Password</Form.Label>
+                        <Form.Control 
+                            type="password" 
+                            placeholder="At least 6 chars" // Placeholder change
+                            className="theme-input"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required 
+                        />
+                        {/* Added Helper Text */}
+                        <Form.Text className="text-muted small">
+                            Must contain 1 uppercase, 1 lowercase, 1 special char, and be 6+ chars long.
+                        </Form.Text>
+                    </Form.Group>
 
                                 <div className="d-grid mt-4">
                                     <Button type="submit" size="lg" className="theme-button">

@@ -85,6 +85,12 @@ class DoctorProfile(models.Model):
         ONLINE = 'ONLINE', 'Online'
         IN_PERSON = 'IN_PERSON', 'In-Person'
         BOTH = 'BOTH', 'Both'
+    
+    # --- NEW: Chat Availability Status ---
+    class ChatStatus(models.TextChoices):
+        AVAILABLE = 'AVAILABLE', 'Available'
+        BUSY = 'BUSY', 'Busy'
+        OFFLINE = 'OFFLINE', 'Not Accepting Chats'
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True, related_name='doctor_profile')
     name = models.CharField(max_length=255)
@@ -99,6 +105,16 @@ class DoctorProfile(models.Model):
     clinic_name = models.CharField(max_length=255, blank=True)
     consultation_type = models.CharField(max_length=20, choices=ConsultationType.choices, default=ConsultationType.BOTH)
     
+    # --- NEW: Chat Settings ---
+    chat_status = models.CharField(max_length=20, choices=ChatStatus.choices, default=ChatStatus.AVAILABLE)
+    # Simple integer hours (0-23) for start/end of working day
+    work_hour_start = models.IntegerField(default=9) # 9 AM
+    work_hour_end = models.IntegerField(default=17)  # 5 PM
+
+    hospital_name = models.CharField(max_length=255, blank=True, null=True)
+    hospital_reception_number = models.CharField(max_length=15, blank=True, null=True)
+    emergency_contact_number = models.CharField(max_length=15, blank=True, null=True)
+
     def get_degree_upload_path(instance, filename):
         return f'doctors/{instance.user.email}/degree_{filename}'
     def get_reg_upload_path(instance, filename):
@@ -114,7 +130,7 @@ class DoctorProfile(models.Model):
 
     def __str__(self):
         return f"Dr. {self.name} ({self.verification_status})"
-
+    
 # --- Medical Report ---
 def get_report_upload_path(instance, filename):
     return f'patients/{instance.patient.email}/reports/{filename}'
@@ -276,6 +292,23 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['timestamp'] # Show oldest messages first
+
+    def __str__(self):
+        return f"Message from {self.sender.email} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+    
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content = models.TextField(blank=True, null=True) # <-- 1. Make text optional
+
+    # --- 2. ADD THIS NEW FIELD ---
+    file = models.FileField(upload_to='chat_files/', blank=True, null=True)
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['timestamp']
 
     def __str__(self):
         return f"Message from {self.sender.email} at {self.timestamp.strftime('%Y-%m-%d %H:%M')}"

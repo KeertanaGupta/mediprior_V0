@@ -3,6 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import User, PatientProfile, DoctorProfile, MedicalReport, DoctorPatientConnection, PatientHealthMetric, Appointment
 from django.utils import timezone
+import re
 
 # --- Serializer for Custom Token (adds user_type) ---
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -15,17 +16,31 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['user_id'] = user.id  # <-- THIS IS THE FIX
         return token
 
-# --- Serializer for User Registration ---
+# --- Serializer for User Registration (With Password Validation) ---
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+
     class Meta:
         model = User
         fields = ('email', 'password', 'user_type')
+
+    def validate_password(self, value):
+        # At least 1 uppercase, 1 lowercase, 1 special char, min 6 length
+        if len(value) < 6:
+            raise serializers.ValidationError("Password must be at least 6 characters long.")
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError("Password must contain at least one uppercase letter.")
+        if not re.search(r'[a-z]', value):
+            raise serializers.ValidationError("Password must contain at least one lowercase letter.")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
+            raise serializers.ValidationError("Password must contain at least one special character.")
+        return value
+
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
 
-# --- Serializer for Patient Profile ---
+# --- Serializer for Patient Profile (With Phone Validation) ---
 class PatientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientProfile
@@ -33,8 +48,15 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'profile_photo': {'required': False},
         }
+    
+    def validate_phone_number(self, value):
+        # Remove any non-digit characters for checking length
+        digits_only = re.sub(r'\D', '', str(value))
+        if len(digits_only) != 10:
+             raise serializers.ValidationError("Phone number must be exactly 10 digits.")
+        return value
 
-# --- Serializer for Doctor Profile ---
+# --- Serializer for Doctor Profile (With Phone Validation) ---
 class DoctorProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorProfile
@@ -43,6 +65,8 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
             'medical_registration_number', 'medical_council',
             'qualification', 'specialization', 'years_of_experience',
             'clinic_name', 'consultation_type',
+            'chat_status', 'work_hour_start', 'work_hour_end', # <-- Added new fields
+            'hospital_name', 'hospital_reception_number', 'emergency_contact_number',
             'medical_degree_certificate', 'medical_registration_certificate',
             'profile_photo', 'bio', 'verification_status'
         )
@@ -53,6 +77,12 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
             'profile_photo': {'required': False},
         }
 
+    def validate_phone_number(self, value):
+        digits_only = re.sub(r'\D', '', str(value))
+        if len(digits_only) != 10:
+             raise serializers.ValidationError("Phone number must be exactly 10 digits.")
+        return value
+    
 # --- Serializer for Medical Reports ---
 class MedicalReportSerializer(serializers.ModelSerializer):
     class Meta:
@@ -71,7 +101,7 @@ class DoctorPublicProfileSerializer(serializers.ModelSerializer):
         fields = (
             'user_id', 'name', 'email', 'specialization', 'qualification', 
             'years_of_experience', 'clinic_name', 'profile_photo', 'bio',
-            'connection_status'
+            'connection_status','hospital_name', 'hospital_reception_number', 'emergency_contact_number'
         )
 
     def get_connection_status(self, obj):

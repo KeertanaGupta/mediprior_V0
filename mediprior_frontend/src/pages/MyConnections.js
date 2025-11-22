@@ -4,12 +4,14 @@ import { Container, Row, Col, Card, Button, Alert, Spinner, ListGroup, Tabs, Tab
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FiCheck, FiX } from 'react-icons/fi'; // Icons for accept/reject
+import { useNavigate } from 'react-router-dom';
 
 function MyConnections() {
     const [connections, setConnections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const { user, authTokens, fetchProfile } = useAuth(); // <-- Add fetchProfile
+    const navigate = useNavigate();
 
     // Re-usable function to fetch connections
     const fetchConnections = async () => {
@@ -117,7 +119,13 @@ function MyConnections() {
                                         <strong className="theme-title">{conn.patient_profile?.name || 'Patient'}</strong>
                                     </div>
                                 </div>
-                                <Button variant="outline-primary" size="sm" disabled>Message (Soon)</Button>
+                                <div>
+                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => navigate(`/chat/${conn.id}`)}>Message</Button>
+                                    {/* --- DOCTOR CAN NOW REMOVE --- */}
+                                    <Button variant="outline-danger" size="sm" onClick={() => handleRemove(conn.patient.id)}>
+                                        <FiX /> Remove
+                                    </Button>
+                                </div>
                             </ListGroup.Item>
                         )) : <p className="text-muted">You have no accepted patient connections yet.</p>}
                     </ListGroup>
@@ -147,13 +155,13 @@ function MyConnections() {
                                     </div>
                                 </div>
                                 <div>
-                                    <Button variant="outline-primary" size="sm" className="me-2" disabled>Message (Soon)</Button>
                                     <Button 
-                                        variant="outline-danger" 
+                                        variant="outline-primary" 
                                         size="sm" 
-                                        onClick={() => handleRemove(conn.doctor_profile.user_id)}
+                                        className="me-2"
+                                        onClick={() => navigate(`/chat/${conn.id}`)}
                                     >
-                                        <FiX /> Remove
+                                        Message
                                     </Button>
                                 </div>
                             </ListGroup.Item>

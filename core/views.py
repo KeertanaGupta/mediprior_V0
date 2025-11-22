@@ -2,6 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions, viewsets
+from .ai_utils import analyze_message, COPING_TOOLS
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.http import Http404
@@ -171,16 +172,21 @@ class DoctorConnectionView(APIView):
 # --- THIS IS THE OTHER MISSING VIEW ---
 class PatientConnectionDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    def delete(self, request, doctor_id, format=None):
-        patient = request.user
+    # Change 'doctor_id' to 'target_user_id' for clarity in future, but keep variable name for now
+    def delete(self, request, doctor_id, format=None): 
+        user = request.user
         try:
-            doctor = User.objects.get(id=doctor_id, user_type=User.UserType.DOCTOR)
-            connection = DoctorPatientConnection.objects.get(patient=patient, doctor=doctor)
+            target_user = User.objects.get(id=doctor_id)
+            # Find connection where user is either patient OR doctor
+            if user.user_type == 'PATIENT':
+                 connection = DoctorPatientConnection.objects.get(patient=user, doctor=target_user)
+            else:
+                 connection = DoctorPatientConnection.objects.get(doctor=user, patient=target_user)
+            
             connection.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except (User.DoesNotExist, DoctorPatientConnection.DoesNotExist):
-            return Response({"error": "Connection not found."}, status=status.HTTP_44_NOT_FOUND)
-            
+            return Response({"error": "Connection not found."}, status=status.HTTP_404_NOT_FOUND)            
 class PatientHealthMetricView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -291,3 +297,30 @@ class AppointmentDetailView(APIView):
         
         serializer = AppointmentSerializer(appointment)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class AIChatView(APIView):
+    """
+    Simple API for the AI Health Assistant.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user_message = request.data.get('message', '')
+        tool_request = request.data.get('tool', None)
+
+        # If user clicked a tool button
+        if tool_request and tool_request in COPING_TOOLS:
+            return Response({
+                "response": COPING_TOOLS[tool_request],
+                "mood_score": 5,
+                "emotion": "Calm",
+                "action": "TOOL"
+            })
+
+        if not user_message:
+            return Response({"error": "Message is required"}, status=400)
+
+        # Analyze the text
+        result = analyze_message(user_message)
+        
+        return Response(result)

@@ -13,7 +13,6 @@ function ChatPage() {
             <Col lg={4} style={{ height: '100%' }}>
                 <ChatList onSelectConversation={setSelectedConversation} />
             </Col>
-
             <Col lg={8} style={{ height: '100%' }}>
                 {/* --- 2. USE THE CHAT WINDOW --- */}
                 {selectedConversation ? (

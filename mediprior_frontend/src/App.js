@@ -7,6 +7,7 @@ import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar'; 
 
 // Import Pages
+import LandingPage from './pages/LandingPage';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -25,11 +26,12 @@ const AppContent = () => {
     const showSidebar = user && location.pathname !== '/login' && location.pathname !== '/signup';
 
     return (
-        <div className={showSidebar ? "app-layout" : ""}>
+        <div className={showSidebar ? "app-layout" : "" }>
             {showSidebar && <Sidebar />}
             <main className={showSidebar ? "main-content" : "main-content-full"}>
                 <Routes>
                     {/* These routes are for non-logged-in users */}
+                    <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     

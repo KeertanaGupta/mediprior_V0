@@ -19,8 +19,8 @@ function SmartwatchConnect() {
         setTimeout(() => {
             setLoading(false);
             handleClose();
-            alert(`Successfully connected to ${selectedDevice}! Data will now sync.`);
-        }, 1500);
+            alert(`Integration with ${selectedDevice} is coming soon!`);
+        }, 1000);
     };
 
     return (

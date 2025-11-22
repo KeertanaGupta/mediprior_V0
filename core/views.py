@@ -6,6 +6,7 @@ from .ai_utils import analyze_message, COPING_TOOLS
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.http import Http404
+from django.utils import timezone
 
 # Import all models
 from .models import (
@@ -210,43 +211,41 @@ class PatientHealthMetricView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AppointmentListView(APIView):
-    """
-    Handles Listing and Creating Appointments.
-    - GET:
-        - Patient: sees their own booked appointments.
-        - Doctor: sees all their appointments (booked and available).
-    - POST:
-        - Doctor: creates new, available time slots.
-    """
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
         user = request.user
-        
-        # Check for query param to see a doctor's AVAILABLE slots
         doctor_id = self.request.query_params.get('doctor_id')
+
+        # --- NEW: Auto-complete past appointments ---
+        # Find booked appointments in the past and mark them complete
+        Appointment.objects.filter(
+            status=Appointment.AppointmentStatus.BOOKED,
+            end_time__lt=timezone.now()
+        ).update(status=Appointment.AppointmentStatus.COMPLETED)
+        # ---------------------------------------------
         
         if user.user_type == 'PATIENT':
             if doctor_id:
-                # Patient is viewing a specific doctor's available slots
+                # Patient viewing a doctor's AVAILABLE slots (future only)
                 queryset = Appointment.objects.filter(
                     doctor_id=doctor_id,
-                    status=Appointment.AppointmentStatus.AVAILABLE
+                    status=Appointment.AppointmentStatus.AVAILABLE,
+                    start_time__gte=timezone.now() # Only show future slots
                 )
             else:
-                # Patient is viewing their own dashboard/schedule
+                # Patient viewing their OWN schedule (all statuses)
                 queryset = Appointment.objects.filter(patient=user)
         
         elif user.user_type == 'DOCTOR':
-            # Doctor is viewing their own schedule
             queryset = Appointment.objects.filter(doctor=user)
         
         else:
-            return Response({"error": "Invalid user type"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid user type"}, status=400)
             
         serializer = AppointmentSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
+        return Response(serializer.data, status=200)
+    
     def post(self, request):
         # This is ONLY for a DOCTOR to create new, available slots
         if request.user.user_type != User.UserType.DOCTOR:

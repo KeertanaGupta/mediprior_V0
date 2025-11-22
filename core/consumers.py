@@ -3,11 +3,11 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from asgiref.sync import async_to_sync
-from .models import Conversation, Message, User, DoctorPatientConnection
+from .models import Conversation, Message, User, DoctorPatientConnection, DoctorProfile
 from django.db.models import Count
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    
+    # ... (connect, disconnect, receive, chat_message are unchanged) ...
     async def connect(self):
         self.user = self.scope['user']
         if not self.user or self.user.is_anonymous:
@@ -30,16 +30,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         
-        # --- 1. HANDLE CLEAR HISTORY ---
+        # --- 1. HANDLE CLEAR HISTORY (SOFT DELETE) ---
         if data.get('command') == 'clear_history':
-            await self.clear_database_history()
-            # Notify everyone in the room that chat is cleared
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                { 'type': 'chat_cleared' }
-            )
+            await self.soft_delete_history()
+            # Send 'cleared' event ONLY to the user who cleared it
+            await self.send(text_data=json.dumps({'type': 'cleared'}))
             return
-        # -------------------------------
 
         message_content = data.get('message', '').strip()
         if not message_content: return
@@ -68,41 +64,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'sender_id': event['sender_id'],
             'timestamp': event['timestamp'],
         }))
-        
-    # --- 2. HANDLE CHAT CLEARED EVENT ---
-    async def chat_cleared(self, event):
-        await self.send(text_data=json.dumps({
-            'type': 'cleared',
-            'message': 'Chat history has been cleared.'
-        }))
-    # ------------------------------------
 
+    # --- Logic Helpers (Unchanged) ---
     @database_sync_to_async
     def check_spam_rules(self, new_content):
+        # ... (Same spam logic as before) ...
         try:
             connection = DoctorPatientConnection.objects.get(id=self.connection_id)
             doctor_profile = connection.doctor.doctor_profile
+            if doctor_profile.chat_status == 'BUSY': return {'blocked': True, 'code': 'busy', 'message': "Doctor is currently unavailable."}
+            if doctor_profile.chat_status == 'OFFLINE': return {'blocked': True, 'code': 'offline', 'message': "Doctor is currently Offline."}
             
-            if doctor_profile.chat_status == 'BUSY':
-                return {'blocked': True, 'code': 'busy', 'message': "Doctor is currently unavailable. Please try later."}
-            if doctor_profile.chat_status == 'OFFLINE':
-                return {'blocked': True, 'code': 'offline', 'message': "Doctor is currently Offline."}
-
             conversation = self._get_conversation_sync()
             last_messages = conversation.messages.order_by('-timestamp')[:5]
-
             if last_messages and last_messages[0].sender == self.user:
-                if last_messages[0].content.lower() == new_content.lower():
-                    return {'blocked': True, 'code': 'spam', 'message': "Your message appears repetitive."}
-
+                if last_messages[0].content.lower() == new_content.lower(): return {'blocked': True, 'code': 'spam', 'message': "Repetitive message."}
             consecutive = 0
             for msg in last_messages:
                 if msg.sender == self.user: consecutive += 1
                 else: break
-            
-            if consecutive >= 5:
-                return {'blocked': True, 'code': 'limit_reached', 'message': "Please wait for the doctor to respond."}
-
+            if consecutive >= 5: return {'blocked': True, 'code': 'limit_reached', 'message': "Please wait for response."}
             return {'blocked': False}
         except: return {'blocked': False}
 
@@ -125,11 +106,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return user == connection.patient or user == connection.doctor
         except: return False
 
+    # --- UPDATED: Filter deleted messages ---
     @database_sync_to_async
     def send_message_history(self):
         conversation = async_to_sync(self.get_conversation)()
         if not conversation: return
-        messages = conversation.messages.all().order_by('timestamp')
+        
+        # Exclude messages where the current user is in the 'deleted_by' list
+        messages = conversation.messages.exclude(deleted_by=self.user).order_by('timestamp')
+        
         message_list = []
         for msg in messages:
             message_list.append({'type': 'message', 'message': msg.content, 'sender_id': msg.sender.id, 'timestamp': msg.timestamp.isoformat()})
@@ -139,10 +124,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def create_new_message(self, content):
         conversation = async_to_sync(self.get_conversation)()
         return Message.objects.create(conversation=conversation, sender=self.user, content=content)
-        
-    # --- 3. DB HELPER TO CLEAR HISTORY ---
+
+    # --- NEW: Soft Delete ---
     @database_sync_to_async
-    def clear_database_history(self):
+    def soft_delete_history(self):
         conversation = async_to_sync(self.get_conversation)()
         if conversation:
-            conversation.messages.all().delete()
+            for msg in conversation.messages.all():
+                msg.deleted_by.add(self.user)

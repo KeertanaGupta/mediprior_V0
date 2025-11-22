@@ -1,176 +1,217 @@
 // src/components/dashboard/PatientCalendarView.js
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Card, Alert, Spinner, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Form, Card, Button, Badge, Spinner } from 'react-bootstrap';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list'; 
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { FiCalendar, FiClock, FiVideo, FiMapPin, FiCheckCircle } from 'react-icons/fi';
 
 function PatientCalendarView() {
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctorId, setSelectedDoctorId] = useState('');
-    const [events, setEvents] = useState([]);
+    const [availableSlots, setAvailableSlots] = useState([]);
     const [myAppointments, setMyAppointments] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const { authTokens } = useAuth();
 
-    // 1. Fetch all VERIFIED doctors for the dropdown
+    // 1. Fetch Doctors
     useEffect(() => {
         const fetchDoctors = async () => {
-            if (!authTokens) return;
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/doctors/', {
+                const res = await axios.get('http://127.0.0.1:8000/api/doctors/', {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
-                setDoctors(response.data);
-            } catch (err) { console.error("Could not fetch doctors", err); }
+                setDoctors(res.data);
+            } catch (e) { console.error(e); }
         };
-        fetchDoctors();
+        if (authTokens) fetchDoctors();
     }, [authTokens]);
 
-    // 2. Fetch the patient's OWN booked appointments
-    useEffect(() => {
-        const fetchMySchedule = async () => {
-            if (!authTokens) return;
-            try {
-                // GET /api/appointments/ (for a patient) returns their own booked slots
-                const response = await axios.get('http://127.0.0.1:8000/api/appointments/', {
-                    headers: { Authorization: `Bearer ${authTokens.access}` }
-                });
-                setMyAppointments(response.data);
-            } catch (err) {
-                console.error("Could not fetch my schedule", err);
-            }
-        };
-        fetchMySchedule();
-    }, [authTokens]);
+    // 2. Fetch My Schedule (Booked/Completed)
+    const fetchMySchedule = async () => {
+        if (!authTokens) return;
+        try {
+            const res = await axios.get('http://127.0.0.1:8000/api/appointments/', {
+                headers: { Authorization: `Bearer ${authTokens.access}` }
+            });
+            
+            // Transform for Calendar
+            const myEvents = res.data.map(appt => ({
+                id: appt.id,
+                title: `${appt.status === 'COMPLETED' ? '✅ ' : ''}Dr. ${appt.doctor_name} (${appt.consultation_type})`,
+                // --- FIX: Convert string to Date object ---
+                start: new Date(appt.start_time),
+                end: new Date(appt.end_time),
+                // ------------------------------------------
+                backgroundColor: getStatusColor(appt.status),
+                borderColor: getStatusColor(appt.status),
+                extendedProps: { ...appt } 
+            }));
+            setMyAppointments(myEvents);
+        } catch (e) { console.error(e); }
+    };
 
-    // 3. When a doctor is selected, fetch their available slots
+    useEffect(() => { fetchMySchedule(); }, [authTokens]);
+
+    // 3. Fetch Available Slots (When doctor selected)
     useEffect(() => {
-        if (!selectedDoctorId || !authTokens) {
-            setEvents([]);
+        if (!selectedDoctorId) {
+            setAvailableSlots([]);
             return;
         }
-        const fetchAvailableSlots = async () => {
+        const fetchSlots = async () => {
             setLoading(true);
-            setError('');
             try {
-                const response = await axios.get(
-                    `http://127.0.0.1:8000/api/appointments/?doctor_id=${selectedDoctorId}`,
-                    { headers: { Authorization: `Bearer ${authTokens.access}` } }
-                );
-                const calendarEvents = response.data.map(slot => ({
+                const res = await axios.get(`http://127.0.0.1:8000/api/appointments/?doctor_id=${selectedDoctorId}`, {
+                    headers: { Authorization: `Bearer ${authTokens.access}` }
+                });
+                const slots = res.data.map(slot => ({
                     id: slot.id,
-                    title: `Available (${slot.consultation_type})`,
+                    title: 'Available',
+                    // --- FIX: Convert string to Date object ---
                     start: new Date(slot.start_time),
                     end: new Date(slot.end_time),
-                    backgroundColor: '#1ee0ac',
-                    borderColor: '#1ee0ac'
+                    // ------------------------------------------
+                    display: 'background', 
+                    backgroundColor: '#28a745', 
+                    classNames: ['available-slot'],
+                    extendedProps: { ...slot }
                 }));
-                setEvents(calendarEvents);
-            } catch (err) {
-                console.error("Error fetching slots:", err);
-                setError('Could not load appointment slots for this doctor.');
-            } finally {
-                setLoading(false);
-            }
+                setAvailableSlots(slots);
+            } catch (e) { console.error(e); }
+            finally { setLoading(false); }
         };
-        fetchAvailableSlots();
+        fetchSlots();
     }, [selectedDoctorId, authTokens]);
 
-    // 4. Handle clicking on an available slot
-    const handleEventClick = (clickInfo) => {
-        if (window.confirm(`Book this ${clickInfo.event.title} slot on ${clickInfo.event.start.toLocaleString()}?`)) {
-            bookAppointment(clickInfo.event.id);
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'BOOKED': return '#3a7bff'; 
+            case 'COMPLETED': return '#6c757d'; 
+            case 'CANCELED': return '#dc3545'; 
+            default: return '#1ee0ac';
         }
     };
 
-    // 5. Send the booking request to the backend
-    const bookAppointment = async (appointmentId) => {
-        try {
-            await axios.patch(
-                `http://127.0.0.1:8000/api/appointments/${appointmentId}/`,
-                {}, // Send empty data to trigger the booking
-                { headers: { Authorization: `Bearer ${authTokens.access}` } }
-            );
-            alert('Appointment booked successfully!');
-            // Refresh events by re-triggering the useEffect
-            setSelectedDoctorId(prevId => `${prevId}`); 
-        } catch (err) {
-            console.error("Error booking appointment:", err.response.data);
-            setError(err.response.data.error || 'Failed to book appointment.');
+    const handleEventClick = async (info) => {
+        const event = info.event;
+        const props = event.extendedProps;
+
+        // If it's an AVAILABLE slot, allow booking
+        if (props.status === 'AVAILABLE') {
+            if (window.confirm(`Book appointment with Dr. ${props.doctor_name || 'Selected Doctor'} on ${event.start.toLocaleString()}?`)) {
+                try {
+                    await axios.patch(`http://127.0.0.1:8000/api/appointments/${event.id}/`, {}, {
+                        headers: { Authorization: `Bearer ${authTokens.access}` }
+                    });
+                    alert("Booking Confirmed!");
+                    fetchMySchedule(); // Refresh my list
+                    setSelectedDoctorId(''); // Clear selection
+                } catch (e) { alert("Booking failed."); }
+            }
         }
     };
     
-    // Format date for display
-    const formatDateTime = (dateStr) => {
-        const date = new Date(dateStr);
-        return date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-    };
+    const allEvents = [...myAppointments, ...availableSlots];
 
     return (
-        <Container fluid>
-            <h1 className="theme-title mb-4">Book an Appointment</h1>
-            {error && <Alert variant="danger">{error}</Alert>}
+        <Container fluid className="p-0">
             <Row>
-                {/* --- Left Column: Doctor Select & Calendar --- */}
-                <Col lg={8}>
-                    <Card className="theme-card">
+                {/* --- LEFT: MAIN CALENDAR --- */}
+                <Col lg={8} className="mb-4">
+                    <Card className="theme-card h-100">
                         <Card.Body>
-                            <Form.Group className="mb-3" controlId="doctorSelect">
-                                <Form.Label>Select a Doctor to see their schedule</Form.Label>
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h3 className="theme-title mb-0">Calendar</h3>
                                 <Form.Select 
+                                    style={{width: '250px'}} 
                                     className="theme-input"
                                     value={selectedDoctorId}
                                     onChange={(e) => setSelectedDoctorId(e.target.value)}
                                 >
-                                    <option value="">-- Select a Doctor --</option>
+                                    <option value="">+ Book New Appointment</option>
                                     {doctors.map(doc => (
-                                        <option key={doc.user_id} value={doc.user_id}>
-                                         {doc.name} ({doc.specialization})
-                                        </option>
+                                        <option key={doc.user_id} value={doc.user_id}>Dr. {doc.name}</option>
                                     ))}
                                 </Form.Select>
-                            </Form.Group>
-                            
-                            {loading && <div className="text-center"><Spinner animation="border" /></div>}
-                            
+                            </div>
+
+                            {loading && <div className="text-center my-2"><Spinner animation="border" size="sm" /> Loading slots...</div>}
+
                             <FullCalendar
-                                plugins={[dayGridPlugin, interactionPlugin]}
+                                plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
                                 initialView="dayGridMonth"
                                 headerToolbar={{
                                     left: 'prev,next today',
                                     center: 'title',
-                                    right: 'dayGridMonth,dayGridWeek'
+                                    right: 'dayGridMonth,listWeek'
                                 }}
-                                events={events}
+                                events={allEvents}
                                 eventClick={handleEventClick}
-                                height="60vh"
+                                height="65vh"
+                                eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: 'short' }}
                             />
                         </Card.Body>
                     </Card>
                 </Col>
-                
-                {/* --- Right Column: My Schedule --- */}
+
+                {/* --- RIGHT: UPCOMING LIST --- */}
                 <Col lg={4}>
-                    <Card className="theme-card">
-                        <Card.Body>
-                            <Card.Title className="theme-title">My Upcoming Appointments</Card.Title>
-                            <ListGroup variant="flush">
-                                {myAppointments.length > 0 ? myAppointments.map(appt => (
-                                    <ListGroup.Item key={appt.id}>
-                                        <strong>{formatDateTime(appt.start_time)}</strong>
-                                        <br/>
-                                        <small>with {appt.doctor_name}</small>
-                                    </ListGroup.Item>
-                                )) : (
-                                    <p className="text-muted">You have no upcoming appointments.</p>
-                                )}
-                            </ListGroup>
-                        </Card.Body>
-                    </Card>
+                    <div className="schedule-card">
+                        <div className="schedule-header">
+                            <h5 className="theme-title mb-0">My Schedule</h5>
+                        </div>
+                        <div className="schedule-list p-3">
+                            {myAppointments.filter(a => a.extendedProps.status === 'BOOKED').length === 0 && (
+                                <p className="text-muted text-center mt-3">No upcoming appointments.</p>
+                            )}
+                            
+                            {myAppointments
+                                .filter(a => a.extendedProps.status === 'BOOKED')
+                                .map(evt => (
+                                    <Card key={evt.id} className="mb-3" style={{background: 'var(--bg-primary)', border: 'none'}}>
+                                        <Card.Body className="d-flex align-items-start">
+                                            <div style={{
+                                                background: 'rgba(58, 123, 255, 0.1)', 
+                                                color: 'var(--accent-primary)', 
+                                                padding: '10px', borderRadius: '10px', marginRight: '15px'
+                                            }}>
+                                                <FiCalendar size={20} />
+                                            </div>
+                                            <div>
+                                                <h6 className="theme-title mb-1">Dr. {evt.extendedProps.doctor_name}</h6>
+                                                <p className="text-muted small mb-1">
+                                                    {/* Now evt.start is a real Date object, so this works */}
+                                                    <FiClock className="me-1"/> {evt.start.toLocaleString('en-IN', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                                                </p>
+                                                <Badge bg={evt.extendedProps.consultation_type === 'ONLINE' ? 'info' : 'success'}>
+                                                    {evt.extendedProps.consultation_type === 'ONLINE' ? <><FiVideo className="me-1"/>Video</> : <><FiMapPin className="me-1"/>Clinic</>}
+                                                </Badge>
+                                            </div>
+                                        </Card.Body>
+                                    </Card>
+                                ))
+                            }
+
+                            <h6 className="theme-title mt-4 mb-3 px-1">Past / Completed</h6>
+                            {myAppointments
+                                .filter(a => a.extendedProps.status === 'COMPLETED')
+                                .map(evt => (
+                                    <div key={evt.id} className="d-flex align-items-center mb-3 px-2 opacity-75">
+                                        <FiCheckCircle className="text-success me-3" size={18} />
+                                        <div>
+                                            {/* This also works now */}
+                                            <p className="mb-0 text-muted small">{evt.start.toLocaleDateString()}</p>
+                                            <strong style={{color: 'var(--text-secondary)'}}>Dr. {evt.extendedProps.doctor_name}</strong>
+                                        </div>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
                 </Col>
             </Row>
         </Container>

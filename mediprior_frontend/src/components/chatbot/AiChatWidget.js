@@ -102,7 +102,7 @@ function AIChatbot() {
             };
 
             // 3. Send Request (Updated URL to /core/)
-            const response = await axios.post(`${API_BASE_URL}/core/ai-chat/`, payload, {
+            const response = await axios.post(`${API_BASE_URL}/api/ai-chat/`, payload, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
 

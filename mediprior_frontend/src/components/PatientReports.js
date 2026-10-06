@@ -4,6 +4,7 @@ import { Card, Button, Form, Row, Col, Alert, Spinner, ListGroup } from 'react-b
 import axios from 'axios';
 // --- THIS IS THE FIX ---
 import { useAuth } from '../context/AuthContext'; // It was ../../
+import { API_BASE_URL } from '../config';
 
 function PatientReports() {
     const [reports, setReports] = useState([]);
@@ -20,7 +21,7 @@ function PatientReports() {
             return;
         }
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/reports/', {
+            const response = await axios.get(`${API_BASE_URL}/api/reports/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setReports(response.data);
@@ -50,7 +51,7 @@ function PatientReports() {
         formData.append('file', file);
 
         try {
-            await axios.post('http://127.0.0.1:8000/api/reports/', formData, {
+            await axios.post(`${API_BASE_URL}/api/reports/`, formData, {
                 headers: { 
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${authTokens.access}` 
@@ -72,7 +73,7 @@ function PatientReports() {
     const handleDelete = async (reportId) => {
         if (window.confirm('Are you sure you want to delete this report?')) {
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/reports/${reportId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/reports/${reportId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 fetchReports();
@@ -148,7 +149,7 @@ function PatientReports() {
                                         <Button
                                             variant="outline-secondary"
                                             size="sm"
-                                            href={`http://127.0.0.1:8000${report.file}`}
+                                            href={`${API_BASE_URL}${report.file}`}
                                             target="_blank"
                                         >
                                             View/Export

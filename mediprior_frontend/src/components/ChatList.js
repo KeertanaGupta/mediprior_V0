@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ListGroup, Spinner, Alert, Form, Card, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 // (Removed FiSearch since it wasn't being used)
 
 function ChatList({ onSelectConversation }) {
@@ -17,7 +18,7 @@ function ChatList({ onSelectConversation }) {
         if (!authTokens) return;
         setLoading(true);
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/connections/', {
+            const response = await axios.get(`${API_BASE_URL}/api/connections/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             const accepted = response.data.filter(c => c.status === 'ACCEPTED');
@@ -35,7 +36,7 @@ function ChatList({ onSelectConversation }) {
 
     const getAvatar = (profile) => {
         if (profile?.profile_photo) {
-            return `http://127.0.0.1:8000${profile.profile_photo}`;
+            return `${API_BASE_URL}${profile.profile_photo}`;
         }
         const name = profile?.name || 'User';
         return `https://ui-avatars.com/api/?name=${name}&background=3a7bff&color=fff&rounded=true`;

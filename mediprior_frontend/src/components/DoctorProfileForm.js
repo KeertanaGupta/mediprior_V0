@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import PhoneInput from 'react-phone-number-input';
 import { useAuth } from '../context/AuthContext'; // <-- 1. IMPORT useAuth
+import { API_BASE_URL } from '../config';
 
 function DoctorProfileForm({ onComplete, profile }) {
     // (State is unchanged)
@@ -26,7 +27,7 @@ function DoctorProfileForm({ onComplete, profile }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const fileBaseUrl = 'http://127.0.0.1:8000';
+    const fileBaseUrl = API_BASE_URL;
 
     // 2. GET THE TOKEN
     const { authTokens } = useAuth();
@@ -79,7 +80,7 @@ function DoctorProfileForm({ onComplete, profile }) {
 
         try {
             // 3. ADD THE TOKEN TO THE REQUEST
-            await axios.post('http://127.0.0.1:8000/api/profile/', formData, {
+            await axios.post(`${API_BASE_URL}/api/profile/`, formData, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
 

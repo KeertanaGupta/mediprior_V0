@@ -9,6 +9,7 @@ import {
     FiGrid, FiMessageSquare, FiCalendar, FiSettings, 
     FiLogOut, FiSun, FiMoon, FiUsers, FiSearch, FiFileText  
 } from 'react-icons/fi';
+import { API_BASE_URL } from '../config';
 
 // (sidebarStyle, logoStyle, navLinkStyle are unchanged)
 const sidebarStyle = {
@@ -50,7 +51,7 @@ function Sidebar() {
         if (user?.user_type === 'DOCTOR' && authTokens) {
             const fetchPendingConnections = async () => {
                 try {
-                    const response = await axios.get('http://127.0.0.1:8000/api/connections/', {
+                    const response = await axios.get(`${API_BASE_URL}/api/connections/`, {
                         headers: { Authorization: `Bearer ${authTokens.access}` }
                     });
                     const count = response.data.filter(conn => conn.status === 'PENDING').length;
@@ -70,7 +71,7 @@ function Sidebar() {
     
     const userName = profile?.name || 'Welcome!';
     const avatarName = profile?.name || 'W';
-    const userAvatar = profile?.profile_photo ? `http://127.0.0.1:8000${profile.profile_photo}` : `https://ui-avatars.com/api/?name=${avatarName}&background=3a7bff&color=fff&rounded=true`;
+    const userAvatar = profile?.profile_photo ? `${API_BASE_URL}${profile.profile_photo}` : `https://ui-avatars.com/api/?name=${avatarName}&background=3a7bff&color=fff&rounded=true`;
 
     return (
         <div style={sidebarStyle}>

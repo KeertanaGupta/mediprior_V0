@@ -5,6 +5,7 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { FiCamera, FiPaperclip, FiSend, FiAlertTriangle, FiPhone, FiMapPin, FiTrash2, FiFileText } from 'react-icons/fi';
+import { API_BASE_URL, WS_BASE_URL } from '../config';
 
 // ... (bubbleStyles, inputFooterStyle, textInputStyle, EmergencyContactCard are unchanged) ...
 const bubbleStyles = {
@@ -56,7 +57,7 @@ function ChatWindow({ conversation }) {
     const lastMessageRef = useRef(null); 
 
     const otherPerson = user.user_type === 'PATIENT' ? conversation.doctor_profile : conversation.patient_profile;
-    const socketUrl = `ws://127.0.0.1:8000/ws/chat/${conversation.id}/?token=${authTokens.access}`;
+    const socketUrl = `${WS_BASE_URL}/ws/chat/${conversation.id}/?token=${authTokens.access}`;
     const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
 
     const [doctorStatus, setDoctorStatus] = useState('AVAILABLE'); 
@@ -66,7 +67,7 @@ function ChatWindow({ conversation }) {
         try {
             const formData = new FormData();
             formData.append('chat_status', newStatus);
-            await axios.post('http://127.0.0.1:8000/api/profile/', formData, { headers: { Authorization: `Bearer ${authTokens.access}` } });
+            await axios.post(`${API_BASE_URL}/api/profile/`, formData, { headers: { Authorization: `Bearer ${authTokens.access}` } });
             setDoctorStatus(newStatus);
         } catch (e) { console.error(e); }
     };
@@ -80,7 +81,7 @@ function ChatWindow({ conversation }) {
     // --- Fetch Reports for Sharing ---
     const fetchReports = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/reports/', { headers: { Authorization: `Bearer ${authTokens.access}` } });
+            const response = await axios.get(`${API_BASE_URL}/api/reports/`, { headers: { Authorization: `Bearer ${authTokens.access}` } });
             setMyReports(response.data);
             setShowReportModal(true);
         } catch (e) { alert("Could not load reports."); }
@@ -88,7 +89,7 @@ function ChatWindow({ conversation }) {
 
     const handleShareReport = (report) => {
         // Send a message with the report link
-        const reportLink = `http://127.0.0.1:8000${report.file}`;
+        const reportLink = `${API_BASE_URL}${report.file}`;
         sendMessage(JSON.stringify({ 'message': `Shared Report: ${report.title}\n${reportLink}` }));
         setShowReportModal(false);
     };
@@ -111,7 +112,7 @@ function ChatWindow({ conversation }) {
         setMessage('');
     };
 
-    const getAvatar = (profile) => profile?.profile_photo ? `http://127.0.0.1:8000${profile.profile_photo}` : `https://ui-avatars.com/api/?name=${profile?.name}&background=3a7bff&color=fff&rounded=true`;
+    const getAvatar = (profile) => profile?.profile_photo ? `${API_BASE_URL}${profile.profile_photo}` : `https://ui-avatars.com/api/?name=${profile?.name}&background=3a7bff&color=fff&rounded=true`;
 
     return (
         <Row style={{height: '100%', margin: 0}}>

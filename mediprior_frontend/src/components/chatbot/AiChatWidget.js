@@ -5,6 +5,7 @@ import { Card, Button, Form, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FiMessageCircle, FiX, FiSend } from 'react-icons/fi';
+import { API_BASE_URL } from '../../config';
 
 const styles = {
     floatingBtn: {
@@ -101,7 +102,7 @@ function AIChatbot() {
             };
 
             // 3. Send Request (Updated URL to /core/)
-            const response = await axios.post('http://127.0.0.1:8000/core/ai-chat/', payload, {
+            const response = await axios.post(`${API_BASE_URL}/core/ai-chat/`, payload, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
 

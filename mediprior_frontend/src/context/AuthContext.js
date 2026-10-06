@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { API_BASE_URL } from '../config';
 
 const getTokensFromStorage = () => {
     const tokens = localStorage.getItem('access_token');
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
             // Manually add the token
-            const response = await axios.get('http://127.0.0.1:8000/api/profile/', {
+            const response = await axios.get(`${API_BASE_URL}/api/profile/`, {
                 headers: { Authorization: `Bearer ${tokens.access}` }
             });
             setProfile(response.data);
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     // --- Login Function ---
     const loginUser = async (email, password) => {
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/token/', {
+            const response = await axios.post(`${API_BASE_URL}/api/token/`, {
                 email: email,
                 password: password
             });

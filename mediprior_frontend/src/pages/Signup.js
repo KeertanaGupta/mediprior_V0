@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock, FiUser, FiCheckCircle } from 'react-icons/fi';
+import { API_BASE_URL } from '../config';
 
 function Signup() {
     const [email, setEmail] = useState('');
@@ -28,7 +29,7 @@ function Signup() {
         const registrationData = { email, password, user_type: userType };
 
         try {
-            await axios.post('http://127.0.0.1:8000/api/register/', registrationData, {
+            await axios.post(`${API_BASE_URL}/api/register/`, registrationData, {
                  headers: { 'Authorization': null }
             });
             await loginUser(email, password);

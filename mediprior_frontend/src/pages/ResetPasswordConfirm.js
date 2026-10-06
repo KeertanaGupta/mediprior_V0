@@ -3,6 +3,7 @@ import { Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiLock } from 'react-icons/fi';
+import { API_BASE_URL } from '../config';
 
 function ResetPasswordConfirm() {
     const { uid, token } = useParams();
@@ -30,7 +31,7 @@ function ResetPasswordConfirm() {
 
         setLoading(true);
         try {
-            await axios.patch('http://127.0.0.1:8000/api/password-reset-complete/', {
+            await axios.patch(`${API_BASE_URL}/api/password-reset-complete/`, {
                 password: password,
                 token: token,
                 uidb64: uid

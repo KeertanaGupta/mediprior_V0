@@ -4,6 +4,7 @@ import { Container, Row, Col, Card, Button, Alert, Spinner, ListGroup } from 're
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { API_BASE_URL } from '../config';
 
 function FindDoctors() {
     const [doctors, setDoctors] = useState([]);
@@ -20,7 +21,7 @@ function FindDoctors() {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/doctors/', {
+            const response = await axios.get(`${API_BASE_URL}/api/doctors/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setDoctors(response.data);
@@ -38,7 +39,7 @@ function FindDoctors() {
     const handleConnect = async (doctorId) => {
         setRequestStatus(prev => ({ ...prev, [doctorId]: 'Sending...' }));
         try {
-            await axios.post('http://127.0.0.1:8000/api/connections/send/', 
+            await axios.post(`${API_BASE_URL}/api/connections/send/`, 
                 { doctor_id: doctorId }, 
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );
@@ -54,7 +55,7 @@ function FindDoctors() {
         if (window.confirm('Are you sure you want to remove this connection?')) {
             setRequestStatus(prev => ({ ...prev, [doctorId]: 'Removing...' }));
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/connections/${doctorId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/connections/${doctorId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 fetchDoctors();
@@ -131,7 +132,7 @@ function FindDoctors() {
 
     const getAvatar = (doctor) => {
         if (doctor.profile_photo) {
-            return `http://127.0.0.1:8000${doctor.profile_photo}`;
+            return `${API_BASE_URL}${doctor.profile_photo}`;
         }
         return `https://ui-avatars.com/api/?name=${doctor.name}&background=3a7bff&color=fff&rounded=true`;
     };

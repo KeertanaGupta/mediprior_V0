@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
+import { API_BASE_URL } from '../config';
 
 function ChatPage() {
     const [connections, setConnections] = useState([]);
@@ -24,7 +25,7 @@ function ChatPage() {
         const fetchConnections = async () => {
             setLoading(true);
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/connections/', {
+                const response = await axios.get(`${API_BASE_URL}/api/connections/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 // Filter for accepted chats only

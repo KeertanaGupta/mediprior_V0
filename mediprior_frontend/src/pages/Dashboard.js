@@ -24,6 +24,7 @@ import SmartwatchConnect from '../components/dashboard/SmartwatchConnect';
 import BmiCard from '../components/dashboard/BmiCard';
 import HeartRateGraph from '../components/dashboard/HeartRateGraph';
 import AIChatbot from '../components/AIChatbot'; 
+import { API_BASE_URL } from '../config';
 
 function Dashboard() {
     const { user, profile, fetchProfile, authTokens } = useAuth(); 
@@ -69,7 +70,7 @@ function Dashboard() {
             const fetchLatestMetric = async () => {
                 if (authTokens) {
                     try {
-                        const response = await axios.get('http://127.0.0.1:8000/api/health-metrics/', {
+                        const response = await axios.get(`${API_BASE_URL}/api/health-metrics/`, {
                             headers: { Authorization: `Bearer ${authTokens.access}` }
                         });
                         if (response.data.length > 0) setMetrics(response.data[0]);

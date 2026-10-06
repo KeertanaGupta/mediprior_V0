@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FiCheck, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { API_BASE_URL } from '../config';
 
 function MyConnections() {
     const [connections, setConnections] = useState([]);
@@ -19,7 +20,7 @@ function MyConnections() {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/connections/', {
+            const response = await axios.get(`${API_BASE_URL}/api/connections/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setConnections(response.data);
@@ -39,7 +40,7 @@ function MyConnections() {
 
     const handleAction = async (connectionId, action) => {
         try {
-            await axios.post('http://127.0.0.1:8000/api/connections/', 
+            await axios.post(`${API_BASE_URL}/api/connections/`, 
                 { connection_id: connectionId, action: action },
                 { headers: { Authorization: `Bearer ${authTokens.access}` } }
             );
@@ -55,7 +56,7 @@ function MyConnections() {
         if (window.confirm("Are you sure you want to remove this connection?")) {
             try {
                 // We send the ID of the USER we want to disconnect from
-                await axios.delete(`http://127.0.0.1:8000/api/connections/${targetUserId}/`, {
+                await axios.delete(`${API_BASE_URL}/api/connections/${targetUserId}/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 fetchConnections(); 
@@ -68,7 +69,7 @@ function MyConnections() {
 
     const getAvatar = (profile) => {
         if (profile?.profile_photo) {
-            return `http://127.0.0.1:8000${profile.profile_photo}`;
+            return `${API_BASE_URL}${profile.profile_photo}`;
         }
         const name = profile?.name || (user.user_type === 'PATIENT' ? 'Doctor' : 'Patient');
         return `https://ui-avatars.com/api/?name=${name}&background=3a7bff&color=fff&rounded=true`;

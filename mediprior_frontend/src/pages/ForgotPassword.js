@@ -3,6 +3,7 @@ import { Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiMail, FiArrowLeft } from 'react-icons/fi';
+import { API_BASE_URL } from '../config';
 
 function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ function ForgotPassword() {
         setLoading(true);
         setMessage('');
         try {
-            await axios.post('http://127.0.0.1:8000/api/request-reset-email/', { email });
+            await axios.post(`${API_BASE_URL}/api/request-reset-email/`, { email });
             setMessage('If an account exists, a reset link has been sent to your email (Check Terminal for now).');
         } catch (error) {
             setMessage('Error sending email. Try again.');

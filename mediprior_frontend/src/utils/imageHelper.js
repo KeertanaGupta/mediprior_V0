@@ -1,4 +1,5 @@
 // src/utils/imageHelper.js
+import { API_BASE_URL } from '../config';
 
 export const getAvatarUrl = (profilePhoto, name = 'User') => {
     // 1. If no photo, return UI Avatar placeholder
@@ -15,5 +16,5 @@ export const getAvatarUrl = (profilePhoto, name = 'User') => {
     const cleanPath = profilePhoto.startsWith('/') ? profilePhoto : `/${profilePhoto}`;
 
     // 4. Return full backend URL
-    return `http://127.0.0.1:8000${cleanPath}`;
+    return `${API_BASE_URL}${cleanPath}`;
 };

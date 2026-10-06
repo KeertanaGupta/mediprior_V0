@@ -178,6 +178,3 @@ EMAIL_USE_TLS = True
 
 # Your real Gmail address
 EMAIL_HOST_USER = 'keertanagupta@gmail.com' 
-
-# The 16-character App Password you just generated (NOT your normal password)
-EMAIL_HOST_PASSWORD = 'wktl shqe rxto nupo'

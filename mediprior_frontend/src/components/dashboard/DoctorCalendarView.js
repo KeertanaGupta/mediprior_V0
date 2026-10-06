@@ -8,6 +8,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import DoctorAvailability from './DoctorAvailability';
+import { API_BASE_URL } from '../../config';
 
 function DoctorCalendarView() {
     const [events, setEvents] = useState([]);
@@ -18,7 +19,7 @@ function DoctorCalendarView() {
         if (!authTokens) return;
         setLoading(true);
         try {
-            const res = await axios.get('http://127.0.0.1:8000/api/appointments/', {
+            const res = await axios.get(`${API_BASE_URL}/api/appointments/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             

@@ -8,6 +8,7 @@ import listPlugin from '@fullcalendar/list';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { FiCalendar, FiClock, FiVideo, FiMapPin, FiCheckCircle } from 'react-icons/fi';
+import { API_BASE_URL } from '../../config';
 
 function PatientCalendarView() {
     const [doctors, setDoctors] = useState([]);
@@ -21,7 +22,7 @@ function PatientCalendarView() {
     useEffect(() => {
         const fetchDoctors = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/api/doctors/', {
+                const res = await axios.get(`${API_BASE_URL}/api/doctors/`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 setDoctors(res.data);
@@ -34,7 +35,7 @@ function PatientCalendarView() {
     const fetchMySchedule = async () => {
         if (!authTokens) return;
         try {
-            const res = await axios.get('http://127.0.0.1:8000/api/appointments/', {
+            const res = await axios.get(`${API_BASE_URL}/api/appointments/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             
@@ -62,7 +63,7 @@ function PatientCalendarView() {
         const fetchSlots = async () => {
             setLoading(true);
             try {
-                const res = await axios.get(`http://127.0.0.1:8000/api/appointments/?doctor_id=${selectedDoctorId}`, {
+                const res = await axios.get(`${API_BASE_URL}/api/appointments/?doctor_id=${selectedDoctorId}`, {
                     headers: { Authorization: `Bearer ${authTokens.access}` }
                 });
                 const slots = res.data.map(slot => ({
@@ -102,7 +103,7 @@ function PatientCalendarView() {
             if (window.confirm(`Confirm booking with ${props.doctor_name || 'Selected Doctor'} on ${event.start.toLocaleString()}?`)) {
                 try {
                     // PATCH request to book the slot
-                    await axios.patch(`http://127.0.0.1:8000/api/appointments/${event.id}/`, {}, {
+                    await axios.patch(`${API_BASE_URL}/api/appointments/${event.id}/`, {}, {
                         headers: { Authorization: `Bearer ${authTokens.access}` }
                     });
                     alert("✅ Appointment Booked Successfully!");

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../config';
 
 function HealthMetricForm() {
     // State for all the new fields
@@ -52,7 +53,7 @@ function HealthMetricForm() {
         };
 
         try {
-            await axios.post('http://127.0.0.1:8000/api/health-metrics/', metricData, {
+            await axios.post(`${API_BASE_URL}/api/health-metrics/`, metricData, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             setSuccess('Your health insights have been saved!');

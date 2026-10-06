@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import DatePicker from 'react-datepicker';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { API_BASE_URL } from '../../config';
 
 // 1. Accept 'onSlotAdded' to refresh the main calendar
 function DoctorAvailability({ onSlotAdded }) {
@@ -19,7 +20,7 @@ function DoctorAvailability({ onSlotAdded }) {
         if (!authTokens) return;
         setLoading(true);
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/appointments/', {
+            const response = await axios.get(`${API_BASE_URL}/api/appointments/`, {
                 headers: { Authorization: `Bearer ${authTokens.access}` }
             });
             // 2. Sort the slots by date
@@ -48,7 +49,7 @@ function DoctorAvailability({ onSlotAdded }) {
         const endTime = new Date(startTime.getTime() + 30 * 60000); // 30 minutes
 
         try {
-            await axios.post('http://127.0.0.1:8000/api/appointments/', 
+            await axios.post(`${API_BASE_URL}/api/appointments/`, 
             {
                 start_time: startTime.toISOString(),
                 end_time: endTime.toISOString(),

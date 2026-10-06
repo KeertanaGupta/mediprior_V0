@@ -8,6 +8,7 @@ import {
     FiUser, FiMail, FiPhone, FiAward,
     FiBook, FiCheckSquare, FiBriefcase
 } from 'react-icons/fi';
+import { API_BASE_URL } from '../../config';
 
 // Helper component for each detail row
 const DetailRow = ({ icon, label, value }) => (
@@ -22,7 +23,7 @@ const DetailRow = ({ icon, label, value }) => (
 
 function DoctorProfileCard({ profile, onEdit }) {
     const { user } = useAuth();
-    const fileBaseUrl = 'http://127.0.0.1:8000';
+    const fileBaseUrl = API_BASE_URL;
 
     const userAvatar = profile?.profile_photo 
         ? `${fileBaseUrl}${profile.profile_photo}`
